@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flex Auth Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+            color: var(--text-dim);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button.main-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button.main-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        button.main-btn:active {
+            transform: scale(0.98);
+        }
+
+        .result-box {
+            margin-top: 32px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            min-height: 60px;
+            word-break: break-all;
+            display: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .status-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .logged-in-actions {
+            display: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="auth-forms">
+            <h1>Flex Auth</h1>
+            <p class="subtitle">Secure Authentication Portal</p>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="main-btn" id="submit-btn">Sign In</button>
+            </form>
+        </div>
+
+        <div id="user-dashboard" class="logged-in-actions">
+            <h1>Welcome Back</h1>
+            <p class="subtitle" id="user-email">Logged in as ...</p>
+
+            <div class="grid-2">
+                <button class="main-btn" onclick="getMe()">Get My Info</button>
+                <button class="main-btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div id="result" class="result-box"></div>
+    </div>
+
+    <script>
+        let mode = 'login';
+        let accessToken = null;
+
+        function switchTab(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('submit-btn').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+        }
+
+        const form = document.getElementById('auth-form');
+        const resultBox = document.getElementById('result');
+
+        function showResult(data, isError = false) {
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = `
+            <div class="status-badge ${isError ? 'status-error' : 'status-success'}">
+                ${isError ? 'Error' : 'Success'}
+            </div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch(`/api/auth/${mode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showResult(data);
+                    if (mode === 'login') {
+                        accessToken = data.accessToken;
+                        document.getElementById('auth-forms').style.display = 'none';
+                        document.getElementById('user-dashboard').style.display = 'block';
+                        document.getElementById('user-email').textContent = `Logged in as ${data.user.email}`;
+                    }
+                } else {
+                    showResult(data, true);
+                }
+            } catch (err) {
+                showResult({ message: err.message }, true);
+            }
+        };
+
+        async function getMe() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                showResult(data, !res.ok);
+
+                // If unauthorized, maybe try refreshing?
+                if (res.status === 401) {
+                    await refreshToken();
+                }
+            } catch (err) {
+                showResult({ message: err.message }, true);
+            }
+        }
+
+        async function refreshToken() {
+            try {
+                const res = await fetch('/api/auth/refresh', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    accessToken = data.accessToken;
+                    showResult({ message: 'Token refreshed', accessToken });
+                } else {
+                    logout();
+                }
+            } catch (err) {
+                showResult({ message: 'Refresh failed' }, true);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                accessToken = null;
+                document.getElementById('auth-forms').style.display = 'block';
+                document.getElementById('user-dashboard').style.display = 'none';
+                resultBox.style.display = 'none';
+                form.reset();
+            } catch (err) {
+                console.error('Logout error', err);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
