@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlexAI - Workout Generator Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent: #f472b6;
+            --text: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .generator-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        .form-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        select,
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(0, 242, 254, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result-section {
+            min-height: 500px;
+        }
+
+        .day-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--primary);
+            animation: slideInRight 0.5s ease-out backwards;
+        }
+
+        .day-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .focus-badge {
+            font-size: 0.75rem;
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--primary);
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+        }
+
+        .exercise-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .exercise-item:first-child {
+            border-top: none;
+        }
+
+        .ex-info h4 {
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .ex-meta {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .ex-meta span b {
+            color: var(--secondary);
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 4rem;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .generator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>FlexAI Generator</h1>
+            <p>Customize your performance. Precision-engineered workout plans.</p>
+        </header>
+
+        <main class="glass-panel">
+            <div class="generator-grid">
+                <section class="form-section">
+                    <div class="form-group">
+                        <label>Fitness Goal</label>
+                        <select id="goal">
+                            <option value="hypertrophy">Hypertrophy (Muscle Build)</option>
+                            <option value="strength">Strength (Power)</option>
+                            <option value="endurance">Endurance (Stamina)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Experience Level</label>
+                        <select id="level">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate" selected>Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Days Per Week</label>
+                        <input type="number" id="days" value="4" min="1" max="6">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Available Equipment</label>
+                        <textarea id="equipment"
+                            rows="4">Barbell, Dumbbells, Flat Bench, Rack, Cable Machine, Pull-Up Bar</textarea>
+                    </div>
+
+                    <button id="generateBtn">Generate My Plan</button>
+                </section>
+
+                <section class="result-section">
+                    <div id="loader" class="loader">
+                        <div class="spinner"></div>
+                        <p>Architecting your routine...</p>
+                    </div>
+                    <div id="planContent">
+                        <div style="text-align: center; color: #64748b; margin-top: 10rem;">
+                            <p>Configure your specs and hit the button to begin.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const generateBtn = document.getElementById('generateBtn');
+        const planContent = document.getElementById('planContent');
+        const loader = document.getElementById('loader');
+
+        generateBtn.addEventListener('click', async () => {
+            const specs = {
+                goal: document.getElementById('goal').value,
+                level: document.getElementById('level').value,
+                days_per_week: parseInt(document.getElementById('days').value),
+                split_type: 'auto',
+                available_equipment: document.getElementById('equipment').value.split(',').map(e => e.trim()),
+                exercises_per_day: 6
+            };
+
+            // Show loader
+            planContent.style.display = 'none';
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/workout/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(specs)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    renderPlan(data.plan);
+                } else {
+                    planContent.innerHTML = `<p style="color: var(--accent)">Error: ${data.message}</p>`;
+                }
+            } catch (err) {
+                planContent.innerHTML = `<p style="color: var(--accent)">Connection Error: ${err.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+                planContent.style.display = 'block';
+            }
+        });
+
+        function renderPlan(plan) {
+            let html = '';
+            let delay = 0;
+
+            Object.keys(plan).forEach(day => {
+                const dayData = plan[day];
+                html += `
+                    <div class="day-card" style="animation-delay: ${delay}s">
+                        <div class="day-title">
+                            ${day}
+                            <span class="focus-badge">${dayData.focus}</span>
+                        </div>
+                        <div class="exercise-list">
+                            ${dayData.exercises.map(ex => `
+                                <div class="exercise-item">
+                                    <div class="ex-info">
+                                        <h4>${ex.name}</h4>
+                                        <div class="ex-meta">
+                                            <span><b>Sets:</b> ${ex.programming.default_sets}</span>
+                                            <span><b>Reps:</b> ${ex.programming.default_reps}</span>
+                                            <span><b>Rest:</b> ${ex.programming.rest_minutes.min}-${ex.programming.rest_minutes.max}m</span>
+                                            <span><b>Load:</b> ${ex.programming.load_formula}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                delay += 0.1;
+            });
+
+            planContent.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>
