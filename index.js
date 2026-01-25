@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./src/routes/auth.routes');
+const workoutRoutes = require('./src/routes/workout.routes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/workout', workoutRoutes);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
