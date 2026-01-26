@@ -127,24 +127,23 @@ const submitSessionResult = async (req, res) => {
             });
 
             const processedMuscles = new Set();
+            const performanceLogs = [];
 
             // 3. Process each exercise in the session
             for (const exResult of exercises) {
                 const { workoutExerciseId, sets, feedback } = exResult;
 
-                // A. Log Performance (Sets)
-                for (const set of sets) {
-                    await tx.exercisePerformanceLog.create({
-                        data: {
-                            workoutExerciseId,
-                            setNumber: set.setNumber,
-                            weight: parseFloat(set.weight),
-                            actualReps: parseInt(set.reps),
-                            rpe: parseInt(set.rpe),
-                            isPersonalRecord: set.isPR || false
-                        }
+                // A. Prepare Performance Logs (Sets)
+                sets.forEach(set => {
+                    performanceLogs.push({
+                        workoutExerciseId,
+                        setNumber: set.setNumber,
+                        weight: parseFloat(set.weight) || 0,
+                        actualReps: parseInt(set.reps) || 0,
+                        rpe: parseInt(set.rpe) || 0,
+                        isPersonalRecord: set.isPR || false
                     });
-                }
+                });
 
                 // B. Mark exercise as completed
                 const workoutEx = await tx.workoutExercise.update({
@@ -173,10 +172,9 @@ const submitSessionResult = async (req, res) => {
                 }
 
                 // D. Update Muscle Fatigue (Heuristic)
-                // We increase fatigue based on number of sets and RPE
                 for (const muscleRel of workoutEx.exercise.muscles) {
                     processedMuscles.add(muscleRel.muscleId);
-                    const fatigueIncrease = muscleRel.role === 'PRIMARY' ? 2 : 1; // Basic heuristic
+                    const fatigueIncrease = muscleRel.role === 'PRIMARY' ? 2 : 1;
 
                     await tx.muscleRecoveryLog.upsert({
                         where: { userId_muscleId: { userId, muscleId: muscleRel.muscleId } },
@@ -193,7 +191,14 @@ const submitSessionResult = async (req, res) => {
                 }
             }
 
-            // Cap fatigue at 10 (Max)
+            // 4. Bulk create all performance logs
+            if (performanceLogs.length > 0) {
+                await tx.exercisePerformanceLog.createMany({
+                    data: performanceLogs
+                });
+            }
+
+            // 5. Cap fatigue at 10 (Max)
             for (const mId of processedMuscles) {
                 const current = await tx.muscleRecoveryLog.findUnique({ where: { userId_muscleId: { userId, muscleId: mId } } });
                 if (current && current.fatigueLevel > 10) {
@@ -205,6 +210,9 @@ const submitSessionResult = async (req, res) => {
             }
 
             return sessionLog;
+        }, {
+            maxWait: 5000, // default
+            timeout: 30000 // 30 seconds
         });
 
         res.json({ success: true, message: "Session processed and adaptive metrics updated.", result });

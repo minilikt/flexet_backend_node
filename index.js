@@ -27,6 +27,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+
+app.get('/api/yo', (req, res) => {
+    res.json({ message: 'yo, routing is working!' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/workout', workoutRoutes);
 app.use('/api/logs', logRoutes);
