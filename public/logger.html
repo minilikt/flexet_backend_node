@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Logger - Flex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ff88;
+            --bg: #0a0a0a;
+            --card: #141414;
+            --text: #ffffff;
+            --grey: #888888;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid #222;
+            margin-bottom: 2rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            background: var(--primary);
+            color: black;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: none;
+        }
+
+        .success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        .nav {
+            margin-bottom: 2rem;
+        }
+
+        .nav a {
+            color: var(--grey);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .exercise-card {
+            background: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            border: 1px solid #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--grey);
+            margin-bottom: 0.3rem;
+        }
+
+        input,
+        select,
+        textarea {
+            background: #000;
+            border: 1px solid #333;
+            color: white;
+            padding: 0.6rem;
+            border-radius: 0.4rem;
+        }
+
+        .set-row {
+            display: grid;
+            grid-template-columns: 0.5fr 1fr 1fr 1fr;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav"><a href="/dashboard.html">← Back to Dashboard</a></div>
+        <h1>Log Your Workout</h1>
+
+        <div id="sessionHeader" class="panel">Loading session...</div>
+
+        <form id="logForm">
+            <div id="exercisesContainer"></div>
+
+            <div class="panel">
+                <h3>Overall Session Summary</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Duration (Minutes)</label>
+                        <input type="number" id="duration" value="60">
+                    </div>
+                    <div class="form-group">
+                        <label>Overall Difficulty (1-10)</label>
+                        <input type="number" id="overallDifficulty" value="7" min="1" max="10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>General Notes</label>
+                    <textarea id="overallNotes" placeholder="How did it go?"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; font-size: 1.1rem; padding: 1rem;">Complete Workout &
+                Sync</button>
+        </form>
+
+        <div id="statusBox" class="status"></div>
+    </div>
+
+    <script>
+        let currentSession = null;
+
+        async function init() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            const res = await fetch('/api/workout/my-plans', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.success && data.plans.length > 0) {
+                const plan = data.plans[0];
+                currentSession = plan.sessions.find(s => !s.isCompleted) || plan.sessions[0];
+                renderSession();
+            } else {
+                document.getElementById('sessionHeader').innerText = "No active plans found.";
+            }
+        }
+
+        function renderSession() {
+            const header = document.getElementById('sessionHeader');
+            header.innerHTML = `
+                <h2>${currentSession.focus} Session</h2>
+                <p style="color:var(--grey); margin:0;">Week ${currentSession.weekNumber} • Day ${currentSession.dayNumber}</p>
+            `;
+
+            const container = document.getElementById('exercisesContainer');
+            container.innerHTML = currentSession.exercises.map((ex, exIndex) => {
+                const targetReps = ex.reps.match(/\d+/) ? ex.reps.match(/\d+/)[0] : 10;
+
+                return `
+                <div class="exercise-card" data-ex-id="${ex.id}">
+                    <h3>${ex.exercise.name} <span style="font-size: 0.8rem; color: var(--grey)">(Target: ${ex.reps})</span></h3>
+                    <div class="sets-header set-row">
+                        <label>Set</label><label>Weight (kg)</label><label>Reps</label><label>RPE</label>
+                    </div>
+                    ${Array.from({ length: ex.sets }).map((_, setIndex) => `
+                        <div class="set-row set-data">
+                            <span>#${setIndex + 1}</span>
+                            <input type="number" class="set-weight" value="20">
+                            <input type="number" class="set-reps" value="${targetReps}">
+                            <input type="number" class="set-rpe" value="7" min="1" max="10">
+                        </div>
+                    `).join('')}
+                    
+                    <div style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1rem;">
+                        <label>Exercise Feedback</label>
+                        <div class="form-row">
+                            <select class="ex-preference">
+                                <option value="NEUTRAL">Neutral</option>
+                                <option value="LIKE">I Like This</option>
+                                <option value="DISLIKE">I Dislike This</option>
+                                <option value="AVOID">Never Show This Again</option>
+                            </select>
+                            <input type="text" class="ex-notes" placeholder="Notes for this exercise...">
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        document.getElementById('logForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const statusBox = document.getElementById('statusBox');
+            btn.disabled = true;
+            btn.innerText = "Syncing with Flex Brain...";
+
+            const payload = {
+                sessionId: currentSession.id,
+                durationMinutes: parseInt(document.getElementById('duration').value),
+                perceivedDifficulty: parseInt(document.getElementById('overallDifficulty').value),
+                notes: document.getElementById('overallNotes').value,
+                exercises: []
+            };
+
+            document.querySelectorAll('.exercise-card').forEach(card => {
+                const exData = {
+                    workoutExerciseId: card.dataset.exId,
+                    sets: [],
+                    feedback: {
+                        preference: card.querySelector('.ex-preference').value,
+                        notes: card.querySelector('.ex-notes').value,
+                        difficulty: parseInt(document.getElementById('overallDifficulty').value) // Default to overall
+                    }
+                };
+
+                card.querySelectorAll('.set-data').forEach((setRow, index) => {
+                    exData.sets.push({
+                        setNumber: index + 1,
+                        weight: parseFloat(setRow.querySelector('.set-weight').value),
+                        reps: parseInt(setRow.querySelector('.set-reps').value),
+                        rpe: parseInt(setRow.querySelector('.set-rpe').value)
+                    });
+                });
+
+                payload.exercises.push(exData);
+            });
+
+            try {
+                const res = await fetch('/api/logs/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+                statusBox.style.display = "block";
+                if (res.ok) {
+                    statusBox.className = "status success";
+                    statusBox.innerText = "Great job! Workout logged and adaptive stats updated.";
+                    setTimeout(() => window.location.href = '/dashboard.html', 2000);
+                } else {
+                    statusBox.className = "status error";
+                    statusBox.innerText = result.message || "Failed to log workout";
+                }
+            } catch (err) {
+                statusBox.style.display = "block";
+                statusBox.className = "status error";
+                statusBox.innerText = "Connection error";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Complete Workout & Sync";
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

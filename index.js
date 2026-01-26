@@ -6,6 +6,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./src/routes/auth.routes');
 const workoutRoutes = require('./src/routes/workout.routes');
+const logRoutes = require('./src/routes/log.routes');
 
 const app = express();
 
@@ -28,6 +29,17 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/workout', workoutRoutes);
+app.use('/api/logs', logRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });

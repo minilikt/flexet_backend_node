@@ -1,35 +1,76 @@
-const fs = require('fs');
 const path = require('path');
 
 class WorkoutGenerator {
-    constructor(exerciseData) {
-        this.exercises = exerciseData;
+    constructor(prisma) {
+        this.prisma = prisma;
     }
 
     /**
      * Filters exercises based on available equipment.
-     * Allows partial matches (e.g., if user has "Dumbbells", they can do "Dumbbell Bench Press").
-     * If an exercise requires multiple items (e.g., "Barbell", "Flat Bench"), user MUST have all.
      */
-    filterByEquipment(availableEquipment) {
-        const equipmentSet = new Set(availableEquipment.map(e => e.toLowerCase()));
+    async filterByEquipment(availableEquipment, userId = null, pool = null) {
+        // Expand user equipment with common synonyms and fuzzy matches
+        const userEquip = availableEquipment.map(e => e.toLowerCase());
+        const expandedSet = new Set(userEquip);
 
-        // Always include Bodyweight
-        equipmentSet.add('bodyweight');
-        equipmentSet.add('floor');
+        // Synonyms and fuzzy expansion
+        userEquip.forEach(eq => {
+            if (eq.includes('weights')) { expandedSet.add('dumbbells'); expandedSet.add('barbell'); expandedSet.add('plates'); }
+            if (eq.includes('bench')) { expandedSet.add('flat bench'); expandedSet.add('incline bench'); expandedSet.add('decline bench'); }
+            if (eq.includes('dumbbell')) expandedSet.add('dumbbells');
+            if (eq.includes('dumbbells')) expandedSet.add('dumbbell');
+            if (eq.includes('barbell')) expandedSet.add('barbells');
+            if (eq.includes('barbells')) expandedSet.add('barbell');
+        });
 
-        return this.exercises.filter(ex => {
-            const reqs = ex.requirements.equipment.map(e => e.toLowerCase());
-            return reqs.every(req => {
-                // Check if any available equipment matches the requirement
-                return Array.from(equipmentSet).some(avail => avail.includes(req) || req.includes(avail));
-            });
+        expandedSet.add('bodyweight');
+        expandedSet.add('floor');
+        expandedSet.add('none');
+        expandedSet.add('open space');
+
+        const expandedArray = Array.from(expandedSet);
+        console.log(`Filtering with expanded equipment: ${expandedArray.join(', ')}`);
+
+        // --- ADAPTIVE LOGIC: GET USER DATA ---
+        let feedbackMap = new Map();
+        let fatigueMap = new Map();
+
+        if (userId) {
+            const feedbacks = await this.prisma.exerciseFeedback.findMany({ where: { userId } });
+            feedbacks.forEach(f => feedbackMap.set(f.exerciseId, f.preference));
+
+            const recoveries = await this.prisma.muscleRecoveryLog.findMany({ where: { userId } });
+            recoveries.forEach(r => fatigueMap.set(r.muscleId, r.fatigueLevel));
+        }
+
+        const exercises = pool || await this.prisma.exercise.findMany({
+            include: {
+                equipment: { include: { equipment: true } },
+                split: true,
+                muscles: true
+            }
+        });
+
+        return exercises.filter(ex => {
+            // 1. Equipment Filter
+            const reqs = ex.equipment.map(ee => ee.equipment.name.toLowerCase());
+            const hasEquip = reqs.length === 0 || reqs.every(req => expandedArray.some(avail => req.includes(avail) || avail.includes(req)));
+            if (!hasEquip) return false;
+
+            // 2. Adaptive Filtering (Preferences)
+            const preference = feedbackMap.get(ex.id);
+            if (preference === 'AVOID') return false;
+            // We can choose to deprioritize DISLIKE later in shuffle/sort, but for now we allow them if necessary
+
+            // 3. Adaptive Filtering (Recovery/Fatigue)
+            // If any primary muscle is > 8 fatigue, avoid this exercise if possible
+            const highFatigue = ex.muscles.some(m => m.role === 'PRIMARY' && (fatigueMap.get(m.muscleId) || 0) >= 8);
+            if (highFatigue) return false;
+
+            return true;
         });
     }
 
-    /**
-     * Shuffles an array in place.
-     */
     shuffle(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -38,136 +79,147 @@ class WorkoutGenerator {
         return array;
     }
 
-    /**
-     * Adjusts programming based on goal.
-     */
     applyGoalLogic(exercise, goal) {
-        const programming = { ...exercise.programming };
+        const setsReps = {
+            sets: exercise.defaultSets || 3,
+            reps: exercise.defaultReps || "8-12",
+            restMin: exercise.restMin,
+            restMax: exercise.restMax
+        };
 
-        // Base logic for sets/reps if not already AMRAP
-        if (programming.default_reps !== "AMRAP") {
+        if (setsReps.reps !== "AMRAP") {
             switch (goal.toLowerCase()) {
                 case 'strength':
-                    programming.default_sets = 4;
-                    programming.default_reps = "3-5";
-                    programming.rest_minutes.min = Math.max(programming.rest_minutes.min, 3);
-                    programming.rest_minutes.max = Math.max(programming.rest_minutes.max, 5);
+                    setsReps.sets = 4;
+                    setsReps.reps = "3-5";
+                    setsReps.restMin = Math.max(setsReps.restMin || 2, 3);
+                    setsReps.restMax = Math.max(setsReps.restMax || 3, 5);
                     break;
                 case 'endurance':
-                    programming.default_sets = 3;
-                    programming.default_reps = "15-20";
-                    programming.rest_minutes.min = 0.5;
-                    programming.rest_minutes.max = 1;
+                    setsReps.sets = 3;
+                    setsReps.reps = "15-20";
+                    setsReps.restMin = 0.5;
+                    setsReps.restMax = 1;
                     break;
                 case 'hypertrophy':
                 default:
-                    // Keep defaults or slightly optimize
-                    programming.default_sets = 3;
-                    programming.default_reps = "8-12";
+                    setsReps.sets = 3;
+                    setsReps.reps = "8-12";
                     break;
             }
         }
 
         return {
-            id: exercise.id,
+            exerciseId: exercise.id,
             name: exercise.name,
-            classification: exercise.classification,
-            programming: programming,
-            alternatives: exercise.logic_assets.alternatives
+            ...setsReps
         };
     }
 
-    /**
-     * Generates a weekly plan.
-     */
-    generatePlan(specs) {
+    async generatePlan(specs, userId = null) {
         const {
             goal,
-            level,
             days_per_week,
-            split_type,
             available_equipment,
-            exercises_per_day = 6
+            exercises_per_day = 6,
+            weeks = 1
         } = specs;
 
-        let filtered = this.filterByEquipment(available_equipment);
+        const MIN_EXERCISES = 4;
+        const TARGET_EXERCISES = Math.max(exercises_per_day, MIN_EXERCISES);
 
-        const plan = {};
-        const usedExerciseIds = new Set();
+        const daysPerWeek = parseInt(days_per_week);
+        console.log(`Generating adaptive plan for User ${userId}`);
 
-        // Split Definitions
-        const splitMap = this.getSplitMap(split_type, days_per_week);
+        const filtered = await this.filterByEquipment(available_equipment, userId);
+        console.log(`Filtered exercises pool size: ${filtered.length}`);
 
-        for (let day = 1; day <= days_per_week; day++) {
-            const dayName = `Day ${day}`;
-            const targetSplits = splitMap[day] || [];
-
-            // Filter exercises for this day's splits
-            let dayPool = filtered.filter(ex =>
-                targetSplits.includes(ex.classification.split) && !usedExerciseIds.has(ex.id)
-            );
-
-            // If pool is too small, allow secondary/related or just reset used set if necessary 
-            // (but requirement says avoid duplicates in the week)
-
-            this.shuffle(dayPool);
-
-            // Prioritize Compounds, then Isolations
-            const compounds = dayPool.filter(ex => ex.classification.type === 'Compound');
-            const isolations = dayPool.filter(ex => ex.classification.type === 'Isolation');
-
-            const selected = [];
-
-            // Aim for 2-3 compounds, rest isolations
-            const compToTake = Math.min(compounds.length, 3);
-            selected.push(...compounds.slice(0, compToTake));
-
-            const remainingNeeded = exercises_per_day - selected.length;
-            selected.push(...this.shuffle(isolations).slice(0, remainingNeeded));
-
-            // If still not enough, take more compounds or whatever is left
-            if (selected.length < exercises_per_day) {
-                const moreNeeded = exercises_per_day - selected.length;
-                const leftovers = dayPool.filter(ex => !selected.find(s => s.id === ex.id));
-                selected.push(...leftovers.slice(0, moreNeeded));
-            }
-
-            plan[dayName] = {
-                focus: targetSplits.join(' / '),
-                exercises: selected.map(ex => {
-                    usedExerciseIds.add(ex.id);
-                    return this.applyGoalLogic(ex, goal);
-                })
-            };
+        if (filtered.length < MIN_EXERCISES) {
+            throw new Error(`Only ${filtered.length} exercises match your equipment. We need at least ${MIN_EXERCISES}. Please add more equipment like 'Dumbbells' or 'Barbell'.`);
         }
 
-        return plan;
+        const fullPlan = [];
+        const splitMap = this.getSplitMap(daysPerWeek);
+
+        for (let week = 1; week <= weeks; week++) {
+            const weekPlan = { week, sessions: [] };
+            const usedInWeek = new Set();
+
+            for (let day = 1; day <= daysPerWeek; day++) {
+                const targetSplits = splitMap[day] || ['Push', 'Pull', 'Legs'];
+                console.log(`Day ${day} Split: ${targetSplits.join('/')}`);
+
+                // Stage 1: Unique exercises within the split
+                let selected = filtered.filter(ex =>
+                    targetSplits.includes(ex.split?.name) && !usedInWeek.has(ex.id)
+                );
+                this.shuffle(selected);
+                selected = selected.slice(0, TARGET_EXERCISES);
+
+                // Stage 2: If not enough, allow duplicates from the same split (already used this week)
+                if (selected.length < TARGET_EXERCISES) {
+                    const remaining = TARGET_EXERCISES - selected.length;
+                    let repeats = filtered.filter(ex =>
+                        targetSplits.includes(ex.split?.name) && !selected.find(s => s.id === ex.id)
+                    );
+                    this.shuffle(repeats);
+                    selected.push(...repeats.slice(0, remaining));
+                }
+
+                // Stage 3: If still not enough, take related exercises (Full Body)
+                if (selected.length < TARGET_EXERCISES) {
+                    const remaining = TARGET_EXERCISES - selected.length;
+                    let fullBodyFallbacks = filtered.filter(ex =>
+                        (ex.split?.name === 'Full Body' || ex.split?.name === 'Abs') &&
+                        !selected.find(s => s.id === ex.id)
+                    );
+                    this.shuffle(fullBodyFallbacks);
+                    selected.push(...fullBodyFallbacks.slice(0, remaining));
+                }
+
+                // Stage 4: Absolute final fallback - take anything from the filtered pool to hit MIN_EXERCISES
+                if (selected.length < MIN_EXERCISES) {
+                    const remaining = MIN_EXERCISES - selected.length;
+                    let anyFallback = filtered.filter(ex => !selected.find(s => s.id === ex.id));
+                    this.shuffle(anyFallback);
+                    selected.push(...anyFallback.slice(0, remaining));
+                }
+
+                console.log(`Day ${day} final count: ${selected.length}`);
+
+                weekPlan.sessions.push({
+                    dayNumber: day,
+                    focus: targetSplits.join(' / '),
+                    exercises: selected.map(ex => {
+                        usedInWeek.add(ex.id);
+                        return this.applyGoalLogic(ex, goal);
+                    })
+                });
+            }
+            fullPlan.push(weekPlan);
+        }
+
+        return fullPlan;
     }
 
-    getSplitMap(type, days) {
+    getSplitMap(days) {
+        const p = ['Push'];
+        const pl = ['Pull'];
+        const l = ['Legs'];
+        const fb = ['Push', 'Pull', 'Legs'];
+        const u = ['Push', 'Pull'];
+
         const maps = {
-            'ppl': {
-                3: { 1: ['Push'], 2: ['Pull'], 3: ['Legs'] },
-                4: { 1: ['Push'], 2: ['Pull'], 3: ['Legs'], 4: ['Push'] },
-                5: { 1: ['Push'], 2: ['Pull'], 3: ['Legs'], 4: ['Push'], 5: ['Pull'] },
-                6: { 1: ['Push'], 2: ['Pull'], 3: ['Legs'], 4: ['Push'], 5: ['Pull'], 6: ['Legs'] }
-            },
-            'upper_lower': {
-                2: { 1: ['Push', 'Pull'], 2: ['Legs'] }, // Approximation
-                3: { 1: ['Push', 'Pull'], 2: ['Legs'], 3: ['Push', 'Pull'] },
-                4: { 1: ['Push', 'Pull'], 2: ['Legs'], 3: ['Push', 'Pull'], 4: ['Legs'] },
-                5: { 1: ['Push', 'Pull'], 2: ['Legs'], 3: ['Push', 'Pull'], 4: ['Legs'], 5: ['Push', 'Pull'] },
-                6: { 1: ['Push', 'Pull'], 2: ['Legs'], 3: ['Push', 'Pull'], 4: ['Legs'], 5: ['Push', 'Pull'], 6: ['Legs'] }
-            },
-            'full_body': {
-                3: { 1: ['Push', 'Pull', 'Legs'], 2: ['Push', 'Pull', 'Legs'], 3: ['Push', 'Pull', 'Legs'] },
-                4: { 1: ['Push', 'Pull', 'Legs'], 2: ['Push', 'Pull', 'Legs'], 3: ['Push', 'Pull', 'Legs'], 4: ['Push', 'Pull', 'Legs'] },
-                5: { 1: ['Push', 'Pull', 'Legs'], 2: ['Push', 'Pull', 'Legs'], 3: ['Push', 'Pull', 'Legs'], 4: ['Push', 'Pull', 'Legs'], 5: ['Push', 'Pull', 'Legs'] }
-            }
+            1: { 1: fb },
+            2: { 1: u, 2: l },
+            3: { 1: p, 2: pl, 3: l },
+            4: { 1: p, 2: pl, 3: l, 4: fb },
+            5: { 1: p, 2: pl, 3: l, 4: u, 5: l },
+            6: { 1: p, 2: pl, 3: l, 4: p, 5: pl, 6: l },
+            7: { 1: p, 2: pl, 3: l, 4: p, 5: pl, 6: l, 7: fb }
         };
 
-        const normalizedType = type.toLowerCase().replace(/[\/\s]/g, '_');
-        return maps[normalizedType] ? maps[normalizedType][days] : maps['full_body'][days] || {};
+        return maps[days] || maps[3]; // Fallback to 3-day PPL
     }
 }
 

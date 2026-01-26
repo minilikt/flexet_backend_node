@@ -12,7 +12,8 @@ const protect = async (req, res, next) => {
 
     try {
         const decoded = verifyAccessToken(token);
-        req.user = decoded;
+        // Map decoded.id to req.user.userId for internal consistency if needed
+        req.user = { ...decoded, userId: decoded.id };
         next();
     } catch (error) {
         res.status(401).json({ message: 'Not authorized, token failed' });

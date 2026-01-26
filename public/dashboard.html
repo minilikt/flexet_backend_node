@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Flex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ff88;
+            --bg: #0a0a0a;
+            --card: #141414;
+            --text: #ffffff;
+            --grey: #888888;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: black;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid #222;
+        }
+
+        form div {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--grey);
+            font-size: 0.9rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.6rem;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 0.4rem;
+            box-sizing: border-box;
+        }
+
+        .plan-card {
+            border-bottom: 1px solid #222;
+            padding: 1rem 0;
+        }
+
+        .plan-card:last-child {
+            border: none;
+        }
+
+        .plan-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .plan-meta {
+            font-size: 0.85rem;
+            color: var(--grey);
+        }
+
+        .session-item {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .exercise-item {
+            font-size: 0.9rem;
+            padding-left: 1rem;
+            color: #ccc;
+            margin-top: 0.3rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Flex Dashboard</h1>
+        <div>
+            <a href="/logger.html" class="btn btn-outline" style="text-decoration: none; margin-right: 1rem;">Adaptive
+                Logger Test</a>
+            <button class="btn btn-outline" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>Generate Plan</h2>
+            <form id="generateForm">
+                <div>
+                    <label>Goal</label>
+                    <select id="goal">
+                        <option value="Hypertrophy">Hypertrophy</option>
+                        <option value="Strength">Strength</option>
+                        <option value="Endurance">Endurance</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Level</label>
+                    <select id="level">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Split Type</label>
+                    <select id="splitType">
+                        <option value="ppl">PPL (Push Pull Legs)</option>
+                        <option value="upper_lower">Upper/Lower</option>
+                        <option value="full_body">Full Body</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Days per Week</label>
+                    <input type="number" id="daysPerWeek" value="3" min="1" max="6">
+                </div>
+                <div>
+                    <label>Weeks</label>
+                    <input type="number" id="weeks" value="4" min="1" max="12">
+                </div>
+                <div>
+                    <label>Equipment (comma separated)</label>
+                    <input type="text" id="equipment" placeholder="Dumbbells, Barbells, Rack, Flat Bench">
+                </div>
+                <button type="submit" class="btn btn-primary">Generate & Save</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h2>My Plans</h2>
+            <div id="plansList">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            if (!localStorage.getItem('accessToken')) window.location.href = '/login.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('accessToken');
+            window.location.href = '/login.html';
+        }
+
+        async function fetchPlans() {
+            const res = await fetch('/api/workout/my-plans', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                renderPlans(data.plans);
+            } else {
+                if (res.status === 401) logout();
+                document.getElementById('plansList').innerHTML = 'Failed to load plans.';
+            }
+        }
+
+        function renderPlans(plans) {
+            const list = document.getElementById('plansList');
+            if (plans.length === 0) {
+                list.innerHTML = 'No plans generated yet.';
+                return;
+            }
+
+            list.innerHTML = plans.map(plan => `
+                <div class="plan-card">
+                    <div class="plan-title">${plan.name}</div>
+                    <div class="plan-meta">${plan.goal} • ${plan.splitType} • ${plan.daysPerWeek} days/week • ${plan.weeks} weeks</div>
+                    <div>
+                        ${plan.sessions.slice(0, 3).map(s => `
+                            <div class="session-item">
+                                <strong>Week ${s.weekNumber} Day ${s.dayNumber}: ${s.focus}</strong>
+                                ${s.exercises.map(ex => `
+                                    <div class="exercise-item">${ex.exercise.name} - ${ex.sets}x${ex.reps}</div>
+                                `).join('')}
+                            </div>
+                        `).join('')}
+                        ${plan.sessions.length > 3 ? '<p style="font-size:0.8rem; color:var(--grey)">... and more sessions</p>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerText = 'Generating...';
+
+            const payload = {
+                goal: document.getElementById('goal').value,
+                level: document.getElementById('level').value,
+                split_type: document.getElementById('splitType').value,
+                days_per_week: document.getElementById('daysPerWeek').value,
+                weeks: document.getElementById('weeks').value,
+                available_equipment: document.getElementById('equipment').value.split(',').map(s => s.trim()).filter(s => s)
+            };
+
+            try {
+                const res = await fetch('/api/workout/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    alert('Workout plan generated and saved!');
+                    fetchPlans();
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Generation failed');
+                }
+            } catch (err) {
+                alert('Connection error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Generate & Save';
+            }
+        });
+
+        checkAuth();
+        fetchPlans();
+    </script>
+</body>
+
+</html>

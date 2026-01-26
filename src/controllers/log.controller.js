@@ -1,0 +1,217 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+const logSession = async (req, res) => {
+    try {
+        const { sessionId, status, difficulty, duration, notes } = req.body;
+
+        const log = await prisma.workoutSessionLog.create({
+            data: {
+                sessionId,
+                perceivedDifficulty: parseInt(difficulty),
+                durationMinutes: parseInt(duration),
+                notes
+            }
+        });
+
+        if (status === 'COMPLETED') {
+            await prisma.workoutSession.update({
+                where: { id: sessionId },
+                data: { isCompleted: true, completedAt: new Date() }
+            });
+        }
+
+        res.json({ success: true, log });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to log session', error: error.message });
+    }
+};
+
+const logPerformance = async (req, res) => {
+    try {
+        const { workoutExerciseId, sets } = req.body;
+
+        const logs = await Promise.all(sets.map((set, index) =>
+            prisma.exercisePerformanceLog.create({
+                data: {
+                    workoutExerciseId,
+                    setNumber: index + 1,
+                    weight: parseFloat(set.weight),
+                    actualReps: parseInt(set.reps),
+                    rpe: parseInt(set.rpe)
+                }
+            })
+        ));
+
+        await prisma.workoutExercise.update({
+            where: { id: workoutExerciseId },
+            data: { isCompleted: true }
+        });
+
+        res.json({ success: true, logs });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to log performance', error: error.message });
+    }
+};
+
+const submitFeedback = async (req, res) => {
+    try {
+        const { exerciseId, preference, difficulty, notes } = req.body;
+        const userId = req.user.userId;
+
+        const feedback = await prisma.exerciseFeedback.upsert({
+            where: { userId_exerciseId: { userId, exerciseId } },
+            update: { preference, perceivedDifficulty: parseInt(difficulty), notes },
+            create: { userId, exerciseId, preference, perceivedDifficulty: parseInt(difficulty), notes }
+        });
+
+        res.json({ success: true, feedback });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to submit feedback', error: error.message });
+    }
+};
+
+const logRecovery = async (req, res) => {
+    try {
+        const { readiness, sleep, fatigue, soreness, muscleFatigues } = req.body;
+        const userId = req.user.userId;
+
+        // Use a more robust way to define "today" for the unique date check
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const daily = await prisma.dailyRecoveryLog.upsert({
+            where: { createdAt: today },
+            update: { readinessScore: readiness, sleepHours: sleep, systemicFatigue: fatigue, sorenessLevel: soreness },
+            create: { userId, readinessScore: readiness, sleepHours: sleep, systemicFatigue: fatigue, sorenessLevel: soreness, createdAt: today }
+        });
+
+        if (muscleFatigues) {
+            for (const mf of muscleFatigues) {
+                await prisma.muscleRecoveryLog.upsert({
+                    where: { userId_muscleId: { userId, muscleId: mf.muscleId } },
+                    update: { fatigueLevel: mf.level },
+                    create: { userId, muscleId: mf.muscleId, fatigueLevel: mf.level }
+                });
+            }
+        }
+
+        res.json({ success: true, daily });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to log recovery', error: error.message });
+    }
+};
+
+const submitSessionResult = async (req, res) => {
+    try {
+        const { sessionId, durationMinutes, perceivedDifficulty, notes, exercises } = req.body;
+        const userId = req.user.userId;
+
+        console.log(`Processing session results for session ${sessionId} [User: ${userId}]`);
+
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Log the overall session
+            const sessionLog = await tx.workoutSessionLog.create({
+                data: {
+                    sessionId,
+                    durationMinutes,
+                    perceivedDifficulty,
+                    notes
+                }
+            });
+
+            // 2. Mark session as completed
+            await tx.workoutSession.update({
+                where: { id: sessionId },
+                data: { isCompleted: true, completedAt: new Date() }
+            });
+
+            const processedMuscles = new Set();
+
+            // 3. Process each exercise in the session
+            for (const exResult of exercises) {
+                const { workoutExerciseId, sets, feedback } = exResult;
+
+                // A. Log Performance (Sets)
+                for (const set of sets) {
+                    await tx.exercisePerformanceLog.create({
+                        data: {
+                            workoutExerciseId,
+                            setNumber: set.setNumber,
+                            weight: parseFloat(set.weight),
+                            actualReps: parseInt(set.reps),
+                            rpe: parseInt(set.rpe),
+                            isPersonalRecord: set.isPR || false
+                        }
+                    });
+                }
+
+                // B. Mark exercise as completed
+                const workoutEx = await tx.workoutExercise.update({
+                    where: { id: workoutExerciseId },
+                    data: { isCompleted: true },
+                    include: { exercise: { include: { muscles: true } } }
+                });
+
+                // C. Process Feedback if provided
+                if (feedback) {
+                    await tx.exerciseFeedback.upsert({
+                        where: { userId_exerciseId: { userId, exerciseId: workoutEx.exerciseId } },
+                        update: {
+                            preference: feedback.preference,
+                            perceivedDifficulty: feedback.difficulty,
+                            notes: feedback.notes
+                        },
+                        create: {
+                            userId,
+                            exerciseId: workoutEx.exerciseId,
+                            preference: feedback.preference,
+                            perceivedDifficulty: feedback.difficulty,
+                            notes: feedback.notes
+                        }
+                    });
+                }
+
+                // D. Update Muscle Fatigue (Heuristic)
+                // We increase fatigue based on number of sets and RPE
+                for (const muscleRel of workoutEx.exercise.muscles) {
+                    processedMuscles.add(muscleRel.muscleId);
+                    const fatigueIncrease = muscleRel.role === 'PRIMARY' ? 2 : 1; // Basic heuristic
+
+                    await tx.muscleRecoveryLog.upsert({
+                        where: { userId_muscleId: { userId, muscleId: muscleRel.muscleId } },
+                        update: {
+                            fatigueLevel: { increment: fatigueIncrease },
+                            lastUpdated: new Date()
+                        },
+                        create: {
+                            userId,
+                            muscleId: muscleRel.muscleId,
+                            fatigueLevel: fatigueIncrease
+                        }
+                    });
+                }
+            }
+
+            // Cap fatigue at 10 (Max)
+            for (const mId of processedMuscles) {
+                const current = await tx.muscleRecoveryLog.findUnique({ where: { userId_muscleId: { userId, muscleId: mId } } });
+                if (current && current.fatigueLevel > 10) {
+                    await tx.muscleRecoveryLog.update({
+                        where: { userId_muscleId: { userId, muscleId: mId } },
+                        data: { fatigueLevel: 10 }
+                    });
+                }
+            }
+
+            return sessionLog;
+        });
+
+        res.json({ success: true, message: "Session processed and adaptive metrics updated.", result });
+    } catch (error) {
+        console.error("Bulk session processing failed:", error);
+        res.status(500).json({ success: false, message: 'Failed to process session data', error: error.message });
+    }
+};
+
+module.exports = { logSession, logPerformance, submitFeedback, logRecovery, submitSessionResult };

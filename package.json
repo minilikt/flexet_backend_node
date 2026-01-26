@@ -15,7 +15,6 @@
   "dependencies": {
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-libsql": "^7.2.0",
-    "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -23,7 +22,11 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nodemon": "^3.1.11",
-    "prisma": "^6.19.2"
+    "nodemon": "^3.1.11"
+  },
+  "debug": true,  
+  "devDependencies": {
+    "@prisma/client": "6.19.2",
+    "prisma": "6.19.2"
   }
 }

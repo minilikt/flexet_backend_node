@@ -6,17 +6,21 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
+  id                String               @id @default(uuid())
+  email             String               @unique
+  password          String
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  refreshTokens     RefreshToken[]
+  workoutPlans      WorkoutPlan[]
+  exerciseFeedbacks ExerciseFeedback[]
+  muscleRecoveries  MuscleRecoveryLog[]
+  dailyRecoveries   DailyRecoveryLog[]
 }
 
 model RefreshToken {
@@ -26,4 +30,207 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Exercise {
+  id              String   @id @default(uuid())
+  name            String
+  type            String // Compound/Isolation
+  difficultyMin   Int?
+  difficultyMax   Int?
+  restMin         Float?
+  restMax         Float?
+  defaultSets     Int?
+  defaultReps     String?
+  loadFormula     String?
+
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  
+  splitId         String?
+  split           Split? @relation(fields: [splitId], references: [id])
+
+  movementPatternId String?
+  movementPattern   MovementPattern? @relation(fields: [movementPatternId], references: [id])
+
+  equipment       ExerciseEquipment[]
+  muscles         ExerciseMuscle[]
+  tags            Tag[]
+  
+  // Alternatives (Self-referencing many-to-many using a join table for better control in relational DB)
+  alternatives    Alternative[] @relation("ExerciseToAlternative")
+  alternativeOf   Alternative[] @relation("AlternativeToExercise")
+
+  workoutExercises WorkoutExercise[]
+  exerciseFeedbacks ExerciseFeedback[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  externalId      String?  @unique // To map from JSON during migration
+}
+
+model WorkoutPlan {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  goal            String
+  level           String?
+  splitType       String?
+  daysPerWeek     Int
+  status          String           @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED
+  weeks           Int              @default(1)
+  sessions        WorkoutSession[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model WorkoutSession {
+  id              String            @id @default(uuid())
+  planId          String
+  plan            WorkoutPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber       Int
+  weekNumber      Int               @default(1)
+  name            String?
+  focus           String?
+  exercises       WorkoutExercise[]
+  isCompleted     Boolean           @default(false)
+  completedAt     DateTime?
+  logs            WorkoutSessionLog[]
+}
+
+model WorkoutExercise {
+  id              String            @id @default(uuid())
+  sessionId       String
+  session         WorkoutSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exerciseId      String
+  exercise        Exercise          @relation(fields: [exerciseId], references: [id])
+  sets            Int
+  reps            String
+  restMin         Float?
+  restMax         Float?
+  order           Int
+  isCompleted     Boolean           @default(false)
+  performanceLogs ExercisePerformanceLog[]
+}
+
+model WorkoutSessionLog {
+  id               String         @id @default(uuid())
+  sessionId        String
+  session          WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  adherenceScore   Int?           // 0-100%
+  perceivedDifficulty Int?        // 1-10 RPE
+  durationMinutes  Int?
+  notes            String?
+  createdAt        DateTime       @default(now())
+}
+
+model ExercisePerformanceLog {
+  id                String          @id @default(uuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  setNumber         Int
+  weight            Float?
+  actualReps        Int?
+  rpe               Int?            // Rate of Perceived Exertion
+  isPersonalRecord  Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+}
+
+model ExerciseFeedback {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId        String
+  exercise          Exercise @relation(fields: [exerciseId], references: [id])
+  preference        String   // LIKE, DISLIKE, NEUTRAL, AVOID
+  perceivedDifficulty Int?   // General feeling about this exercise
+  notes             String?
+  updatedAt         DateTime @updatedAt
+  @@unique([userId, exerciseId])
+}
+
+model MuscleRecoveryLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muscleId     String
+  muscle       Muscle   @relation(fields: [muscleId], references: [id])
+  fatigueLevel Int      @default(0) // 0-10
+  lastUpdated  DateTime @updatedAt
+  @@unique([userId, muscleId])
+}
+
+model DailyRecoveryLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readinessScore Int?     // 1-100
+  sleepHours     Float?
+  systemicFatigue Int?    // 1-10
+  sorenessLevel  Int?     // 1-10
+  createdAt      DateTime @default(now()) @unique
+}
+
+model Alternative {
+  exerciseId    String
+  exercise      Exercise @relation("ExerciseToAlternative", fields: [exerciseId], references: [id])
+  alternativeId String
+  alternative   Exercise @relation("AlternativeToExercise", fields: [alternativeId], references: [id])
+
+  @@id([exerciseId, alternativeId])
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  exercises Exercise[]
+}
+
+model Split {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  exercises Exercise[]
+}
+
+model MovementPattern {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  exercises Exercise[]
+}
+
+model Equipment {
+  id        String              @id @default(uuid())
+  name      String              @unique
+  exercises ExerciseEquipment[]
+}
+
+model ExerciseEquipment {
+  exerciseId  String
+  exercise    Exercise  @relation(fields: [exerciseId], references: [id])
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  @@id([exerciseId, equipmentId])
+}
+
+model Muscle {
+  id               String              @id @default(uuid())
+  name             String              @unique
+  exercises        ExerciseMuscle[]
+  muscleRecoveries MuscleRecoveryLog[]
+}
+
+model ExerciseMuscle {
+  exerciseId String
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id])
+  muscleId   String
+  muscle     Muscle     @relation(fields: [muscleId], references: [id])
+  role       String     // PRIMARY, SECONDARY, STABILIZER
+  @@id([exerciseId, muscleId, role])
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  exercises Exercise[]
 }
