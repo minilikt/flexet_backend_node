@@ -109,6 +109,7 @@ Triggers the **Workout Generator** to create a new multi-week adaptive plan.
     "available_equipment": ["Dumbbells", "Bench"],
     "exercises_per_day": 6,         // optional (default: 6)
     "weeks": 4,                     // optional (default: 4)
+    "workoutDays": ["Monday"],      // optional (array of strings)
     "progressionModel": "LINEAR"    // LINEAR, DOUBLE_PROGRESSION, WAVE
   }
   ```
@@ -184,8 +185,48 @@ Returns the library of exercises.
 - **Query Params**:
   - `muscleId`: Filter by muscle
   - `equipmentId`: Filter by equipment
+  - `categoryId`: Filter by category
+  - `search`: String search for name
+  - `limit`: Number of results (default: 50)
+
+### Get Filter Metadata
+**GET** `/exercises/metadata`
+
+Returns lists of muscles, equipment, and categories to populate filter UI.
 
 ### Get Performance Trends
 **GET** `/workout/trends`
 
 Returns aggregated stats for visualization (e.g., 1RM progress over time).
+
+---
+
+## 📊 Analytics (`/analytics`) [NEW]
+
+### Dashboard Summary
+**GET** `/analytics/summary`
+
+Returns streaks, weekly tonnage, and current goal progress.
+
+### Muscle Distribution
+**GET** `/analytics/muscles`
+
+Returns volume (kg) breakdown per muscle group for radar charts.
+
+### Body Metrics History
+**GET** `/analytics/metrics`
+
+Returns historical body measurements (weight, fat %) for progress charts.
+
+### Log Body Metric
+**POST** `/analytics/metrics`
+
+Logs current physiological data.
+
+- **Body**:
+  ```json
+  {
+    "weight": 75.5,
+    "fatPercentage": 14.2
+  }
+  ```

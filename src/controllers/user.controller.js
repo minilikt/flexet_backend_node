@@ -17,6 +17,15 @@ const updateProfile = async (req, res) => {
             sleepHours,
             waterIntake
         } = req.body;
+        console.log('Incoming Goal:', goal);
+        const validGoals = ['STRENGTH', 'HYPERTROPHY', 'ENDURANCE', 'MAINTENANCE', 'WEIGHT_LOSS'];
+        const validLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+        const normGoal = (goal ? goal.toUpperCase().replace(' ', '_') : undefined);
+        const finalGoal = validGoals.includes(normGoal) ? normGoal : undefined;
+
+        const normLevel = (trainingLevel ? trainingLevel.toUpperCase() : undefined);
+        const finalLevel = validLevels.includes(normLevel) ? normLevel : undefined;
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -25,8 +34,8 @@ const updateProfile = async (req, res) => {
                 gender,
                 height: height ? parseFloat(height) : undefined,
                 weight: weight ? parseFloat(weight) : undefined,
-                goal,
-                trainingLevel,
+                goal: finalGoal,
+                trainingLevel: finalLevel,
                 activityLevel,
                 equipment,
                 workoutDays,

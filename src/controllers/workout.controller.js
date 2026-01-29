@@ -48,9 +48,18 @@ const generateWorkout = async (req, res) => {
         let savedPlan;
 
         const transactionOptions = {
-            maxWait: 10000, // Increased for safety
+            maxWait: 10000,
             timeout: 30000
         };
+
+        const validGoals = ['STRENGTH', 'HYPERTROPHY', 'ENDURANCE', 'MAINTENANCE', 'WEIGHT_LOSS'];
+        const validLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+        const normGoal = specs.goal ? specs.goal.toUpperCase().replace(' ', '_') : undefined;
+        const finalGoal = validGoals.includes(normGoal) ? normGoal : undefined;
+
+        const normLevel = specs.level ? specs.level.toUpperCase() : undefined;
+        const finalLevel = validLevels.includes(normLevel) ? normLevel : null;
 
         if (existingPlan) {
             console.log(`Updating existing plan: ${existingPlan.id}`);
@@ -61,8 +70,8 @@ const generateWorkout = async (req, res) => {
                     where: { id: existingPlan.id },
                     data: {
                         name: specs.name || `Plan - ${specs.goal}`,
-                        goal: specs.goal,
-                        level: specs.level || null,
+                        goal: finalGoal,
+                        level: finalLevel,
                         splitType: specs.split_type || 'Dynamic',
                         daysPerWeek: daysPerWeek,
                         weeks: weeks,
@@ -96,8 +105,8 @@ const generateWorkout = async (req, res) => {
                 data: {
                     userId,
                     name: specs.name || `Plan - ${specs.goal}`,
-                    goal: specs.goal,
-                    level: specs.level || null,
+                    goal: finalGoal,
+                    level: finalLevel,
                     splitType: specs.split_type || 'Dynamic',
                     daysPerWeek: daysPerWeek,
                     weeks: weeks,

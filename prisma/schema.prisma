@@ -7,6 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum WorkoutGoal {
+  STRENGTH
+  HYPERTROPHY
+  ENDURANCE
+  MAINTENANCE
+  WEIGHT_LOSS
+}
+
+enum TrainingLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum PlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MuscleRole {
+  PRIMARY
+  SECONDARY
+  STABILIZER
+}
+
+enum Preference {
+  LIKE
+  DISLIKE
+  AVOID
+}
+
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
@@ -14,22 +45,27 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+  summaries     AnalyticsSummary[]
+  metricEvents  MetricEvent[]
   workoutPlans  WorkoutPlan[]
+  bodyMetrics   BodyMetric[]
   
   // Profile Fields
   gender        String?
   age           Int?
   height        Float?   // cm
   weight        Float?   // kg
-  goal          String?  // lose_weight, maintain, muscle_mass, strength
-  trainingLevel String?  // beginner, intermediate, advanced
-  activityLevel String?  // sedentary, active, etc.
+  goal          WorkoutGoal?
+  trainingLevel TrainingLevel?
+  activityLevel String?  
   
   // Preferences & Lifestyle
-  equipment     String[] // gym, home, dumbbells, etc.
-  workoutDays   String[] // Monday, Tuesday, etc.
+  equipment     String[] 
+  workoutDays   String[] 
   sleepHours    Float?
   waterIntake   Float?   // liters
+
+  @@index([email])
 }
 
 model RefreshToken {
@@ -39,6 +75,8 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Exercise {
@@ -58,6 +96,7 @@ model Exercise {
   createdAt                                                           DateTime                @default(now())
   updatedAt                                                           DateTime                @updatedAt
   externalId                                                          String?                 @unique
+  gifUrl                                                              String?
   category                                                            Category?               @relation(fields: [categoryId], references: [id])
   movementPattern                                                     MovementPattern?        @relation(fields: [movementPatternId], references: [id])
   split                                                               Split?                  @relation(fields: [splitId], references: [id])
@@ -67,6 +106,9 @@ model Exercise {
   ExerciseToAlternative_ExerciseToAlternative_alternativeIdToExercise ExerciseToAlternative[] @relation("ExerciseToAlternative_alternativeIdToExercise")
   ExerciseToAlternative_ExerciseToAlternative_exerciseIdToExercise    ExerciseToAlternative[] @relation("ExerciseToAlternative_exerciseIdToExercise")
   workoutExercises                                                   WorkoutExercise[]
+
+  @@index([categoryId, splitId])
+  @@index([name])
 }
 
 model Category {
@@ -112,11 +154,12 @@ model Muscle {
 model ExerciseMuscle {
   exerciseId String
   muscleId   String
-  role       String
+  role       MuscleRole
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
   muscle     Muscle   @relation(fields: [muscleId], references: [id])
 
   @@id([exerciseId, muscleId, role])
+  @@index([muscleId, role])
 }
 
 model Tag {
@@ -142,20 +185,23 @@ model ExerciseToAlternative {
 
   @@id([exerciseId, alternativeId])
 }
+
 model WorkoutPlan {
   id          String           @id @default(uuid())
   userId      String
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
-  goal        String
-  level       String?
+  goal        WorkoutGoal
+  level       TrainingLevel?
   splitType   String           @default("Dynamic")
   daysPerWeek Int
   weeks       Int              @default(4)
-  status      String           @default("ACTIVE") // ACTIVE | ARCHIVED
+  status      PlanStatus       @default(ACTIVE)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   sessions    WorkoutSession[]
+
+  @@index([userId, status])
 }
 
 model WorkoutSession {
@@ -164,12 +210,14 @@ model WorkoutSession {
   plan         WorkoutPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
   weekNumber   Int
   dayNumber    Int
-  dayLabel     String?            // e.g., "Monday"
+  dayLabel     String?            
   focus        String?
   isCompleted  Boolean            @default(false)
   completedAt  DateTime?
   exercises    WorkoutExercise[]
   sessionLog   WorkoutSessionLog?
+
+  @@index([planId, isCompleted, weekNumber, dayNumber])
 }
 
 model WorkoutExercise {
@@ -186,6 +234,9 @@ model WorkoutExercise {
   order           Int
   isCompleted     Boolean           @default(false)
   performanceLogs ExercisePerformanceLog[]
+
+  @@index([sessionId, isCompleted])
+  @@index([exerciseId])
 }
 
 model ExercisePerformanceLog {
@@ -195,9 +246,11 @@ model ExercisePerformanceLog {
   setNumber         Int
   weight            Float?
   actualReps        Int?
-  rpe               Int?            // 1-10
+  rpe               Int?            
   isPersonalRecord  Boolean         @default(false)
   createdAt         DateTime        @default(now())
+
+  @@index([workoutExerciseId, createdAt])
 }
 
 model WorkoutSessionLog {
@@ -205,7 +258,7 @@ model WorkoutSessionLog {
   sessionId          String         @unique
   session            WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   durationMinutes    Int?
-  perceivedDifficulty Int?           // 1-10 (Soreness/Intensity)
+  perceivedDifficulty Int?           
   notes              String?
   createdAt          DateTime       @default(now())
 }
@@ -214,31 +267,75 @@ model ExerciseFeedback {
   id                  String   @id @default(uuid())
   userId              String
   exerciseId          String
-  preference          String?  // LIKE | DISLIKE | AVOID
-  perceivedDifficulty Int?     // 1-10
+  preference          Preference? 
+  perceivedDifficulty Int?     
   notes               String?
   updatedAt           DateTime @updatedAt
 
   @@unique([userId, exerciseId])
+  @@index([userId, preference])
 }
 
 model MuscleRecoveryLog {
   id           String   @id @default(uuid())
   userId       String
   muscleId     String
-  fatigueLevel Int      @default(0) // 0-10
+  fatigueLevel Int      @default(0)
   lastUpdated  DateTime @default(now())
   muscle       Muscle   @relation(fields: [muscleId], references: [id])
 
   @@unique([userId, muscleId])
+  @@index([userId])
 }
 
 model DailyRecoveryLog {
   id              String   @id @default(uuid())
   userId          String
   sleepHours      Float?
-  systemicFatigue Int?    // 1-10
-  sorenessLevel   Int?     // 1-10
+  systemicFatigue Int?    
+  sorenessLevel   Int?     
   createdAt       DateTime @default(now())
+
   @@unique([userId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model BodyMetric {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          DateTime @default(now())
+  weight        Float?   
+  height        Float?   
+  fatPercentage Float?
+  notes         String?
+  
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model MetricEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // e.g., WORKOUT_COMPLETE, WATER_LOG, LIFT_PR
+  value     Float?
+  unit      String?
+  metadata  Json?    // Optional JSON for extra context (e.g., { exerciseId: "..." })
+  createdAt DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+}
+
+model AnalyticsSummary {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metricKey   String   // e.g., current_streak, weekly_tonnage, total_water
+  value       Float
+  metadata    Json?
+  lastUpdated DateTime @default(now()) @updatedAt
+
+  @@unique([userId, metricKey])
+  @@index([userId])
 }

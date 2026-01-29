@@ -16,6 +16,7 @@ The "Static" data, primarily seeded by the system but extensible.
   - `type`: Strength, Cardio, etc.
   - `difficultyMin/Max`: For scaling difficulty.
   - `defaultSets/Reps`: Baseline programming.
+  - `gifUrl`: [NEW] URL string for exercise demonstration GIFs.
 - **`Equipment`**: (e.g., Dumbbell, Barbell). Many-to-Many with Exercise via `ExerciseEquipment`.
 - **`Muscle`**: (e.g., Pectoralis Major). Many-to-Many with Exercise via `ExerciseMuscle`. Muscles have roles (`PRIMARY` vs `SECONDARY`).
 - **`Split`**: Categorization like "Push", "Pull", "Legs". Essential for the `WorkoutGenerator` to build split-based routines.
@@ -26,6 +27,7 @@ The "Static" data, primarily seeded by the system but extensible.
   - Status: `ACTIVE` or `ARCHIVED`.
 - **`WorkoutSession`**: A single day's workout.
   - `weekNumber`, `dayNumber`.
+  - `dayLabel`: [NEW] Friendly name (e.g., "Monday") mapped from user preferences.
   - `isCompleted`: Boolean flag triggered by `logSession`.
 - **`WorkoutExercise`**: The specific prescription for that day.
   - Links `Exercise` to `WorkoutSession`.
@@ -40,9 +42,11 @@ The "Static" data, primarily seeded by the system but extensible.
 - **`ExerciseFeedback`**: User preference overrides.
   - `preference`: `LIKE`, `DISLIKE`, or `AVOID`.
   - `AVOID` triggers the Generator to exclude this exercise entirely.
-- **`MuscleRecoveryLog`**: Fatigue tracking.
   - `fatigueLevel` (0-10).
   - Used to regulate volume (reduce sets) if fatigue is high.
+- **`BodyMetric`**: [NEW] Historical tracking of physiological data.
+  - `weight`, `height`, `fatPercentage`.
+  - Tracks changes over time for progress visualization.
 
 ## 📐 Key Relationships
 
@@ -55,6 +59,7 @@ erDiagram
     WorkoutExercise ||--o{ ExercisePerformanceLog : tracks
     User ||--o{ ExerciseFeedback : provides
     User ||--o{ MuscleRecoveryLog : experiences
+    User ||--o{ BodyMetric : tracks
 ```
 
 ## 🔄 Migrations

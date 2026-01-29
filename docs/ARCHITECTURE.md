@@ -40,6 +40,8 @@ c:/Projects/New folder/flex/back/
 Located in `src/controllers/`, this layer handles incoming HTTP requests. It parses the body, validates inputs, and calls the necessary service or utility.
 - **`log.controller.js`**: Massive controller handling session submissions. It is responsible for the **Reactive Sync**, where submitting a log triggers a plan recalculation.
 - **`workout.controller.js`**: Handles plan creation and retrieval.
+- **`exercise.controller.js`**: [NEW] Handles exercise exploration, search filters, and metadata.
+- **`analytics.controller.js`**: [NEW] Handles complex metric aggregations for streaks, tonnage, and body metrics.
 
 ### 2. The Logic Layer (Utils)
 Located in `src/utils/`.

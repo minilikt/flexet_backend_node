@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flex - Exercise Library</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --card-bg: rgba(30, 41, 59, 0.5);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --secondary: #10b981;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header & Search Section */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            box-shadow: 0 0 20px var(--primary-glow);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .search-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        /* Sidebar Filters */
+        .sidebar {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            animation: fadeInLeft 0.8s ease-out;
+        }
+
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+
+        .filter-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .filter-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            color: var(--text-dim);
+        }
+
+        .filter-chip:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+        }
+
+        .filter-chip.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .status-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Exercise Grid */
+        .exercise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .exercise-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            animation: scaleIn 0.5s ease-out backwards;
+        }
+
+        .exercise-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: rgba(30, 41, 59, 0.8);
+            border-color: var(--primary);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .exercise-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .category-tag {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .meta-item b {
+            color: var(--text);
+        }
+
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .muscle-tag {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Loading & Empty States */
+        .loading-shimmer {
+            background: linear-gradient(90deg, var(--card-bg) 25%, rgba(51, 65, 85, 0.7) 50%, var(--card-bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Exercise Library</h1>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search exercises (e.g. Bench Press)...">
+                <button class="search-btn" onclick="performSearch()">Search</button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <aside class="sidebar">
+                <div class="filter-section">
+                    <div class="filter-title">Muscle Groups</div>
+                    <div class="filter-options" id="muscleFilters">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Equipment</div>
+                    <div class="filter-options" id="equipmentFilters">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">Category</div>
+                    <div class="filter-options" id="categoryFilters">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </aside>
+
+            <main>
+                <div id="exerciseCount" style="margin-bottom: 1rem; color: var(--text-dim);">Found 0 exercises</div>
+                <div class="exercise-grid" id="exerciseGrid">
+                    <!-- Exercise cards injected here -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let currentFilters = {
+            search: '',
+            muscle: '',
+            equipment: '',
+            category: ''
+        };
+
+        async function init() {
+            await fetchMetadata();
+            await performSearch();
+
+            // Setup real-time search
+            document.getElementById('searchInput').addEventListener('input', debounce((e) => {
+                currentFilters.search = e.target.value;
+                performSearch();
+            }, 500));
+        }
+
+        async function fetchMetadata() {
+            try {
+                const res = await fetch('/api/exercises/metadata');
+                const { metadata } = await res.json();
+
+                renderFilters('muscleFilters', metadata.muscles, 'muscle');
+                renderFilters('equipmentFilters', metadata.equipment, 'equipment');
+                renderFilters('categoryFilters', metadata.categories, 'category');
+            } catch (err) {
+                console.error('Failed to load filters', err);
+            }
+        }
+
+        function renderFilters(containerId, items, key) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="filter-chip active" onclick="setFilter('${key}', '')">All</div>`;
+            items.forEach(item => {
+                container.innerHTML += `
+                    <div class="filter-chip" onclick="setFilter('${key}', '${item}', this)">
+                        ${item}
+                    </div>
+                `;
+            });
+        }
+
+        function setFilter(key, value, el) {
+            currentFilters[key] = value;
+
+            // UI Update
+            if (el) {
+                const chips = el.parentElement.querySelectorAll('.filter-chip');
+                chips.forEach(c => c.classList.remove('active'));
+                el.classList.add('active');
+            } else {
+                // Handle "All"
+                const container = document.getElementById(key + 'Filters');
+                if (container) {
+                    const chips = container.querySelectorAll('.filter-chip');
+                    chips.forEach(c => c.classList.remove('active'));
+                    chips[0].classList.add('active');
+                }
+            }
+
+            performSearch();
+        }
+
+        async function performSearch() {
+            const grid = document.getElementById('exerciseGrid');
+            grid.innerHTML = Array(6).fill(0).map(() => `<div class="exercise-card loading-shimmer" style="height: 200px"></div>`).join('');
+
+            try {
+                const params = new URLSearchParams();
+                if (currentFilters.search) params.append('search', currentFilters.search);
+                if (currentFilters.muscle) params.append('muscle', currentFilters.muscle);
+                if (currentFilters.equipment) params.append('equipment', currentFilters.equipment);
+                if (currentFilters.category) params.append('category', currentFilters.category);
+
+                const res = await fetch(`/api/exercises?${params.toString()}`);
+                const data = await res.json();
+
+                renderExercises(data.exercises);
+                document.getElementById('exerciseCount').innerText = `Found ${data.count} exercises`;
+            } catch (err) {
+                grid.innerHTML = `<div style="color: #ef4444">Error loading exercises</div>`;
+            }
+        }
+
+        function renderExercises(exercises) {
+            const grid = document.getElementById('exerciseGrid');
+            if (exercises.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-dim)">No exercises found matching your criteria.</div>`;
+                return;
+            }
+
+            grid.innerHTML = exercises.map((ex, index) => `
+                <div class="exercise-card" style="animation-delay: ${index * 0.05}s">
+                    <div class="card-header">
+                        <span class="exercise-name">${ex.name}</span>
+                        ${ex.category ? `<span class="category-tag">${ex.category.name}</span>` : ''}
+                    </div>
+                    <div class="card-body">
+                        ${ex.gifUrl ? `
+                            <div class="exercise-media" style="width: 100%; height: 160px; border-radius: 12px; overflow: hidden; margin-bottom: 0.5rem; background: #000;">
+                                <img src="${ex.gifUrl}" alt="${ex.name}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+                            </div>
+                        ` : ''}
+                        <div class="meta-item">
+                            <span>Target:</span>
+                            <b>${ex.muscles.filter(m => m.role === 'PRIMARY').map(m => m.muscle.name).join(', ') || 'General'}</b>
+                        </div>
+                        <div class="meta-item">
+                            <span>Equipment:</span>
+                            <b>${ex.equipment.map(e => e.equipment.name).join(', ') || 'None'}</b>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

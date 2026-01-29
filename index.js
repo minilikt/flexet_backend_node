@@ -8,6 +8,8 @@ const authRoutes = require('./src/routes/auth.routes');
 const workoutRoutes = require('./src/routes/workout.routes');
 const logRoutes = require('./src/routes/log.routes');
 const userRoutes = require('./src/routes/user.routes');
+const exerciseRoutes = require('./src/routes/exercise.routes');
+const analyticsRoutes = require('./src/routes/analytics.routes');
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/workout', workoutRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/exercises', exerciseRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

@@ -60,10 +60,16 @@ const submitFeedback = async (req, res) => {
         const { exerciseId, preference, difficulty, notes } = req.body;
         const userId = req.user.userId;
 
+        let normPreference = preference ? preference.toUpperCase() : null;
+        const validPreferences = ['LIKE', 'DISLIKE', 'AVOID'];
+        if (!validPreferences.includes(normPreference)) {
+            normPreference = null;
+        }
+
         const feedback = await prisma.exerciseFeedback.upsert({
             where: { userId_exerciseId: { userId, exerciseId } },
-            update: { preference, perceivedDifficulty: parseInt(difficulty), notes },
-            create: { userId, exerciseId, preference, perceivedDifficulty: parseInt(difficulty), notes }
+            update: { preference: normPreference, perceivedDifficulty: parseInt(difficulty), notes },
+            create: { userId, exerciseId, preference: normPreference, perceivedDifficulty: parseInt(difficulty), notes }
         });
 
         res.json({ success: true, feedback });
@@ -111,30 +117,28 @@ const submitSessionResult = async (req, res) => {
         console.log(`Processing session results for session ${sessionId} [User: ${userId}]`);
 
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Log the overall session
-            const sessionLog = await tx.workoutSessionLog.create({
-                data: {
-                    sessionId,
-                    durationMinutes,
-                    perceivedDifficulty,
-                    notes
-                }
-            });
+            console.log(`Bulk processing ${exercises.length} exercises...`);
+            // 1. Log overall session and mark as completed
+            const [sessionLog] = await Promise.all([
+                tx.workoutSessionLog.create({
+                    data: { sessionId, durationMinutes, perceivedDifficulty, notes }
+                }),
+                tx.workoutSession.update({
+                    where: { id: sessionId },
+                    data: { isCompleted: true, completedAt: new Date() }
+                })
+            ]);
 
-            // 2. Mark session as completed
-            await tx.workoutSession.update({
-                where: { id: sessionId },
-                data: { isCompleted: true, completedAt: new Date() }
-            });
-
-            const processedMuscles = new Set();
+            const muscleFatigueChanges = new Map(); // muscleId -> increment
             const performanceLogs = [];
+            const feedbackUpserts = [];
+            const exerciseUpdates = [];
 
-            // 3. Process each exercise in the session
+            // 2. Accumulate data in-memory
             for (const exResult of exercises) {
                 const { workoutExerciseId, sets, feedback } = exResult;
 
-                // A. Prepare Performance Logs (Sets)
+                // A. Performance Logs
                 sets.forEach(set => {
                     performanceLogs.push({
                         workoutExerciseId,
@@ -146,74 +150,68 @@ const submitSessionResult = async (req, res) => {
                     });
                 });
 
-                // B. Mark exercise as completed
+                // B. Batch Exercise Updates & Fatigue mapping
                 const workoutEx = await tx.workoutExercise.update({
                     where: { id: workoutExerciseId },
                     data: { isCompleted: true },
-                    include: { exercise: { include: { muscles: true } } }
+                    include: { exercise: { select: { id: true, muscles: { select: { muscleId: true, role: true } } } } }
                 });
 
-                // C. Process Feedback if provided
+                // C. Feedback
                 if (feedback) {
-                    await tx.exerciseFeedback.upsert({
+                    let normPreference = feedback.preference ? feedback.preference.toUpperCase() : null;
+                    const validPreferences = ['LIKE', 'DISLIKE', 'AVOID'];
+                    if (!validPreferences.includes(normPreference)) {
+                        normPreference = null; // Map NEUTRAL or others to null
+                    }
+
+                    feedbackUpserts.push(tx.exerciseFeedback.upsert({
                         where: { userId_exerciseId: { userId, exerciseId: workoutEx.exerciseId } },
-                        update: {
-                            preference: feedback.preference,
-                            perceivedDifficulty: feedback.difficulty,
-                            notes: feedback.notes
-                        },
-                        create: {
-                            userId,
-                            exerciseId: workoutEx.exerciseId,
-                            preference: feedback.preference,
-                            perceivedDifficulty: feedback.difficulty,
-                            notes: feedback.notes
-                        }
-                    });
+                        update: { preference: normPreference, perceivedDifficulty: feedback.difficulty, notes: feedback.notes },
+                        create: { userId, exerciseId: workoutEx.exerciseId, preference: normPreference, perceivedDifficulty: feedback.difficulty, notes: feedback.notes }
+                    }));
                 }
 
-                // D. Update Muscle Fatigue (Heuristic)
-                for (const muscleRel of workoutEx.exercise.muscles) {
-                    processedMuscles.add(muscleRel.muscleId);
-                    const fatigueIncrease = muscleRel.role === 'PRIMARY' ? 2 : 1;
-
-                    await tx.muscleRecoveryLog.upsert({
-                        where: { userId_muscleId: { userId, muscleId: muscleRel.muscleId } },
-                        update: {
-                            fatigueLevel: { increment: fatigueIncrease },
-                            lastUpdated: new Date()
-                        },
-                        create: {
-                            userId,
-                            muscleId: muscleRel.muscleId,
-                            fatigueLevel: fatigueIncrease
-                        }
-                    });
+                // D. Aggregate Fatigue
+                for (const m of workoutEx.exercise.muscles) {
+                    const inc = m.role === 'PRIMARY' ? 2 : 1;
+                    muscleFatigueChanges.set(m.muscleId, (muscleFatigueChanges.get(m.muscleId) || 0) + inc);
                 }
             }
 
-            // 4. Bulk create all performance logs
+            // 3. Serialized Batch Updates (Prisma doesn't support aggregate upsert, but we've reduced calls)
             if (performanceLogs.length > 0) {
-                await tx.exercisePerformanceLog.createMany({
-                    data: performanceLogs
-                });
+                await tx.exercisePerformanceLog.createMany({ data: performanceLogs });
             }
 
-            // 5. Cap fatigue at 10 (Max)
-            for (const mId of processedMuscles) {
-                const current = await tx.muscleRecoveryLog.findUnique({ where: { userId_muscleId: { userId, muscleId: mId } } });
-                if (current && current.fatigueLevel > 10) {
-                    await tx.muscleRecoveryLog.update({
-                        where: { userId_muscleId: { userId, muscleId: mId } },
-                        data: { fatigueLevel: 10 }
-                    });
-                }
+            if (feedbackUpserts.length > 0) {
+                await Promise.all(feedbackUpserts);
             }
+
+            // E. Apply and Cap Fatigue
+            const fatiguePromises = [];
+            for (const [muscleId, inc] of muscleFatigueChanges.entries()) {
+                fatiguePromises.push((async () => {
+                    const current = await tx.muscleRecoveryLog.upsert({
+                        where: { userId_muscleId: { userId, muscleId } },
+                        update: { fatigueLevel: { increment: inc }, lastUpdated: new Date() },
+                        create: { userId, muscleId, fatigueLevel: inc }
+                    });
+
+                    if (current.fatigueLevel > 10) {
+                        return tx.muscleRecoveryLog.update({
+                            where: { id: current.id },
+                            data: { fatigueLevel: 10 }
+                        });
+                    }
+                })());
+            }
+            await Promise.all(fatiguePromises);
 
             return sessionLog;
         }, {
-            maxWait: 5000, // default
-            timeout: 30000 // 30 seconds
+            maxWait: 10000,
+            timeout: 30000
         });
 
         // --- NEW: REACTIVE SYNC HOOK ---
@@ -251,50 +249,61 @@ async function recalculateRemainingPlan(userId) {
         }
     });
 
-    if (!activePlan) return;
+    if (!activePlan || !activePlan.sessions.length) return;
 
     const generator = new WorkoutGenerator(prisma);
 
-    // Pre-fetch all performance logs for the user to optimize
+    // 1. Batch fetch all logs once (Optimized)
     const allLogs = await prisma.exercisePerformanceLog.findMany({
         where: {
             workoutExercise: {
-                session: {
-                    plan: {
-                        userId: userId
-                    }
-                }
+                session: { plan: { userId } }
             }
         },
-        include: { workoutExercise: true },
+        select: {
+            weight: true,
+            actualReps: true,
+            rpe: true,
+            workoutExercise: {
+                select: { exerciseId: true }
+            }
+        },
         orderBy: { createdAt: 'desc' }
     });
 
     const performanceMap = new Map();
     allLogs.forEach(log => {
         const exId = log.workoutExercise?.exerciseId;
+        if (!exId) return;
         if (!performanceMap.has(exId)) performanceMap.set(exId, []);
         if (performanceMap.get(exId).length < 3) performanceMap.get(exId).push(log);
     });
 
-    // Iterate through all future sessions and their exercises
+    // 2. Prepare all adaptive logic (In-memory loop is fast)
+    const updatePromises = [];
     for (const session of activePlan.sessions) {
         for (const workEx of session.exercises) {
             const pastLogs = performanceMap.get(workEx.exerciseId) || [];
-            const adaptive = await generator.applyGoalLogic(workEx.exercise, activePlan.goal, userId, pastLogs);
-
-            // Update the future exercise in the DB
-            await prisma.workoutExercise.update({
-                where: { id: workEx.id },
-                data: {
-                    sets: adaptive.sets,
-                    reps: adaptive.reps,
-                    weight: adaptive.weight > 0 ? adaptive.weight : workEx.weight
-                }
-            });
-            // NOTE: The schema is missing a 'weight' field in WorkoutExercise! 
-            // I should have added that. Let's check schema again.
+            // We can resolve these concurrently but since generators might hit DB (alternatives),
+            // let's at least batch the final writes.
+            updatePromises.push((async () => {
+                const adaptive = await generator.applyGoalLogic(workEx.exercise, activePlan.goal, userId, pastLogs);
+                return prisma.workoutExercise.update({
+                    where: { id: workEx.id },
+                    data: {
+                        sets: adaptive.sets,
+                        reps: adaptive.reps,
+                        weight: adaptive.weight > 0 ? adaptive.weight : workEx.weight
+                    }
+                });
+            })());
         }
+    }
+
+    // 3. Execute all updates in parallel (or consider transaction)
+    if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        console.log(`Successfully batch updated ${updatePromises.length} future exercises.`);
     }
 }
 
