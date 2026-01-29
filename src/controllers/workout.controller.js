@@ -43,6 +43,7 @@ const generateWorkout = async (req, res) => {
                                         exerciseId: ex.exerciseId,
                                         sets: ex.sets,
                                         reps: ex.reps,
+                                        weight: ex.weight,
                                         restMin: ex.restMin,
                                         restMax: ex.restMax,
                                         order: index
@@ -77,6 +78,7 @@ const generateWorkout = async (req, res) => {
                                     exerciseId: ex.exerciseId,
                                     sets: ex.sets,
                                     reps: ex.reps,
+                                    weight: ex.weight,
                                     restMin: ex.restMin,
                                     restMax: ex.restMax,
                                     order: index
@@ -138,7 +140,63 @@ const getUserPlans = async (req, res) => {
     }
 };
 
+const getPerformanceTrends = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Fetch all performance logs for the user, grouped by exercise
+        const logs = await prisma.exercisePerformanceLog.findMany({
+            where: {
+                workoutExercise: {
+                    userId: userId
+                }
+            },
+            include: {
+                workoutExercise: {
+                    include: {
+                        exercise: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        // Group by exercise name and calculate volume (weight * reps)
+        const trends = logs.reduce((acc, log) => {
+            const exName = log.workoutExercise.exercise.name;
+            if (!acc[exName]) acc[exName] = [];
+
+            acc[exName].push({
+                date: log.createdAt,
+                volume: (log.weight || 0) * (log.actualReps || 0),
+                rpe: log.rpe,
+                isPR: log.isPersonalRecord
+            });
+            return acc;
+        }, {});
+
+        // Also get fatigue trends
+        const fatigue = await prisma.muscleRecoveryLog.findMany({
+            where: { userId },
+            include: { muscle: true }
+        });
+
+        res.json({
+            success: true,
+            trends,
+            fatigue: fatigue.map(f => ({
+                muscle: f.muscle.name,
+                level: f.fatigueLevel,
+                lastUpdated: f.lastUpdated
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch trends', error: error.message });
+    }
+};
+
 module.exports = {
     generateWorkout,
-    getUserPlans
+    getUserPlans,
+    getPerformanceTrends
 };

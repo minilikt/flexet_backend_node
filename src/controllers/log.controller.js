@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const WorkoutGenerator = require('../utils/workoutGenerator');
 const prisma = new PrismaClient();
 
 const logSession = async (req, res) => {
@@ -215,11 +216,78 @@ const submitSessionResult = async (req, res) => {
             timeout: 30000 // 30 seconds
         });
 
-        res.json({ success: true, message: "Session processed and adaptive metrics updated.", result });
+        // --- NEW: REACTIVE SYNC HOOK ---
+        // After successful transaction, update the rest of the plan
+        try {
+            await recalculateRemainingPlan(userId);
+        } catch (syncError) {
+            console.error("Reactive sync failed (non-fatal):", syncError);
+        }
+
+        res.json({ success: true, message: "Session processed and future plan adapted.", result });
     } catch (error) {
         console.error("Bulk session processing failed:", error);
         res.status(500).json({ success: false, message: 'Failed to process session data', error: error.message });
     }
 };
+
+/**
+ * Recalculates all uncompleted exercises in the active plan based on latest logs.
+ */
+async function recalculateRemainingPlan(userId) {
+    console.log(`Recalculating plan for user ${userId}...`);
+
+    const activePlan = await prisma.workoutPlan.findFirst({
+        where: { userId, status: 'ACTIVE' },
+        include: {
+            sessions: {
+                where: { isCompleted: false },
+                include: {
+                    exercises: {
+                        include: { exercise: true }
+                    }
+                }
+            }
+        }
+    });
+
+    if (!activePlan) return;
+
+    const generator = new WorkoutGenerator(prisma);
+
+    // Pre-fetch all performance logs for the user to optimize
+    const allLogs = await prisma.exercisePerformanceLog.findMany({
+        where: { workoutExercise: { userId } },
+        include: { workoutExercise: true },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const performanceMap = new Map();
+    allLogs.forEach(log => {
+        const exId = log.workoutExercise?.exerciseId;
+        if (!performanceMap.has(exId)) performanceMap.set(exId, []);
+        if (performanceMap.get(exId).length < 3) performanceMap.get(exId).push(log);
+    });
+
+    // Iterate through all future sessions and their exercises
+    for (const session of activePlan.sessions) {
+        for (const workEx of session.exercises) {
+            const pastLogs = performanceMap.get(workEx.exerciseId) || [];
+            const adaptive = await generator.applyGoalLogic(workEx.exercise, activePlan.goal, userId, pastLogs);
+
+            // Update the future exercise in the DB
+            await prisma.workoutExercise.update({
+                where: { id: workEx.id },
+                data: {
+                    sets: adaptive.sets,
+                    reps: adaptive.reps,
+                    weight: adaptive.weight > 0 ? adaptive.weight : workEx.weight
+                }
+            });
+            // NOTE: The schema is missing a 'weight' field in WorkoutExercise! 
+            // I should have added that. Let's check schema again.
+        }
+    }
+}
 
 module.exports = { logSession, logPerformance, submitFeedback, logRecovery, submitSessionResult };

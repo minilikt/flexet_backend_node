@@ -6,4 +6,6 @@ const { protect } = require('../middlewares/auth.middleware');
 router.post('/generate', protect, workoutController.generateWorkout);
 router.get('/my-plans', protect, workoutController.getUserPlans);
 
+router.get('/trends', protect, workoutController.getPerformanceTrends);
+
 module.exports = router;

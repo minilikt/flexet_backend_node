@@ -1,0 +1,106 @@
+
+=== Debugging Exercise Filtering ===
+Test Equipment: Dumbbells, Barbell, Flat Bench
+Expanded Keywords: dumbbells, barbell, flat bench, dumbbell, barbells, incline bench, decline bench, bodyweight, floor, none, open space
+
+Total Pull Exercises in DB: 61
+Filtered Pull Exercises (Available): 25
+  ✓ Rear Delt Fly
+  ✓ Barbell Row
+  ✓ Single-Arm Dumbbell Row
+  ✓ Chest Supported Row
+  ✓ Dumbbell Pullover
+  ✓ Barbell Bicep Curl
+  ✓ Dumbbell Bicep Curl
+  ✓ Hammer Curl
+  ✓ Concentration Curl
+  ✓ Incline Dumbbell Curl
+  ✓ Reverse Barbell Curl
+  ✓ Zottman Curl
+  ✓ Dumbbell Wrist Curl
+  ✓ Farmer's Walk
+  ✓ Sumo Deadlift
+  ✓ Dumbbell Rear Delt Fly
+  ✓ Barbell Shrug
+  ✓ Dumbbell Shrug
+  ✓ Farmer's Walk
+  ✓ Wrist Curls
+  ✓ Reverse Wrist Curls
+  ✓ Isometric Neck Hold
+  ✓ Zottman Curl
+  ✓ Single-Arm Dumbbell Row
+  ✓ Incline Dumbbell Curl
+
+--- REJECTED Pull Exercises ---
+  ✗ Face Pull (Requires: Cable Machine, Rope)
+     Missing match in expanded set for: "cable machine, rope"
+  ✗ Pull-Up (Requires: Pull-Up Bar)
+     Missing match in expanded set for: "pull-up bar"
+  ✗ Chin-Up (Requires: Pull-Up Bar)
+     Missing match in expanded set for: "pull-up bar"
+  ✗ Wide-Grip Pull-Up (Requires: Pull-Up Bar)
+     Missing match in expanded set for: "pull-up bar"
+  ✗ Lat Pulldown (Requires: Cable Machine, Long Bar)
+     Missing match in expanded set for: "cable machine, long bar"
+  ✗ Close-Grip Lat Pulldown (Requires: Cable Machine, V-Bar)
+     Missing match in expanded set for: "cable machine, v-bar"
+  ✗ Pendlay Row (Requires: Barbell, Plates)
+     Missing match in expanded set for: "plates"
+  ✗ Dumbbell Row (Requires: Dumbbells, Bench Support)
+     Missing match in expanded set for: "bench support"
+  ✗ Seated Cable Row (Requires: Cable Machine, Seated Row Platform)
+     Missing match in expanded set for: "cable machine, seated row platform"
+  ✗ T-Bar Row (Requires: T-Bar Platform / Landmine)
+     Missing match in expanded set for: "t-bar platform / landmine"
+  ✗ One-Arm Cable Row (Requires: Cable Machine, Single Handle)
+     Missing match in expanded set for: "cable machine, single handle"
+  ✗ Meadows Row (Requires: Barbell, Landmine Attachment)
+     Missing match in expanded set for: "landmine attachment"
+  ✗ Straight-Arm Pulldown (Requires: Cable Machine, Long Bar / Rope)
+     Missing match in expanded set for: "cable machine, long bar / rope"
+  ✗ Inverted Row (Requires: Pull-Up Bar / Smith Machine)
+     Missing match in expanded set for: "pull-up bar / smith machine"
+  ✗ EZ-Bar Curl (Requires: EZ-Bar)
+     Missing match in expanded set for: "ez-bar"
+  ✗ Preacher Curl (Requires: EZ-Bar, Preacher Bench)
+     Missing match in expanded set for: "ez-bar, preacher bench"
+  ✗ Cable Bicep Curl (Requires: Cable Machine, Straight Bar)
+     Missing match in expanded set for: "cable machine, straight bar"
+  ✗ Rope Cable Curl (Requires: Cable Machine, Rope)
+     Missing match in expanded set for: "cable machine, rope"
+  ✗ Spider Curl (Requires: EZ-Bar, Incline Bench)
+     Missing match in expanded set for: "ez-bar"
+  ✗ Reverse EZ-Bar Curl (Requires: EZ-Bar)
+     Missing match in expanded set for: "ez-bar"
+  ✗ Barbell Wrist Curl (Requires: Barbell, Bench Support)
+     Missing match in expanded set for: "bench support"
+  ✗ Barbell Reverse Wrist Curl (Requires: Barbell, Bench Support)
+     Missing match in expanded set for: "bench support"
+  ✗ Dead Hang (Requires: Pull-Up Bar)
+     Missing match in expanded set for: "pull-up bar"
+  ✗ Conventional Deadlift (Requires: Barbell, Weight Plates)
+     Missing match in expanded set for: "weight plates"
+  ✗ Face Pulls (Requires: Cable Machine, Rope)
+     Missing match in expanded set for: "cable machine, rope"
+  ✗ Reverse Pec Deck (Requires: Pec Deck Machine)
+     Missing match in expanded set for: "pec deck machine"
+  ✗ Kettlebell Snatch (Requires: Kettlebell)
+     Missing match in expanded set for: "kettlebell"
+  ✗ Sled Pull (Requires: Sled, Rope)
+     Missing match in expanded set for: "sled, rope"
+  ✗ Chest Supported T-Bar Row (Requires: T-Bar Row Machine)
+     Missing match in expanded set for: "t-bar row machine"
+  ✗ Smith Machine Shrug (Requires: Smith Machine)
+     Missing match in expanded set for: "smith machine"
+  ✗ Neck Curls (Requires: Weight Plate, Bench)
+     Missing match in expanded set for: "weight plate"
+  ✗ Neck Extensions (Requires: Weight Plate / Harness)
+     Missing match in expanded set for: "weight plate / harness"
+  ✗ Superman Hold (Requires: Mat)
+     Missing match in expanded set for: "mat"
+  ✗ Dead Hang (Requires: Pull-Up Bar)
+     Missing match in expanded set for: "pull-up bar"
+  ✗ Plate Pinch Hold (Requires: Weight Plates)
+     Missing match in expanded set for: "weight plates"
+  ✗ T-Bar Row (Landmine) (Requires: Barbell, V-Handle, Landmine Attachment)
+     Missing match in expanded set for: "v-handle, landmine attachment"

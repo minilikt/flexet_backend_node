@@ -1,0 +1,23 @@
+
+=== Checking Status for User fb16c549-ea69-4208-82d2-7119a4a38410 ===
+
+Querying MuscleRecoveryLog...
+Found 14 fatigue logs.
+--- Muscle Fatigue Levels (Raw) ---
+MuscleID aa8b6f2f-b718-4dfe-a5a4-3e250ebf67af: 3/10
+MuscleID 0ec40f4b-0913-49d3-ae74-4a8ad15d4f59: 5/10
+MuscleID 217bf6c0-732f-4694-9d5b-601826ba7278: 5/10
+MuscleID a1c71a73-831b-44d4-a2ff-4790e60a9ea8: 5/10
+MuscleID df2b830b-1565-4367-9be8-87b58e234cc1: 1/10
+MuscleID 7064835a-d333-407a-8bcf-c29cc9169798: 1/10
+MuscleID c7578548-aa22-48bc-9c43-7b46a6685b16: 2/10
+MuscleID 20c21eb2-b87d-4304-b69f-9a0e3d782725: 4/10
+MuscleID b1a8a504-24cd-48d8-8681-818e13df4101: 3/10
+MuscleID ed571e9f-debf-4dce-96b5-44f67c27c178: 1/10
+MuscleID cfb43f00-5c39-4423-9a13-951364d3ae0a: 1/10
+MuscleID 2d28a0b3-b66c-454d-bf13-cac58c066bdc: 2/10
+MuscleID c21eacb3-06c2-4e1c-8155-b0538a07e46d: 1/10
+MuscleID d1ce06ec-abf7-4d95-8a37-41b13b7848b4: 1/10
+
+Querying ExerciseFeedback...
+Found 0 avoided exercises.

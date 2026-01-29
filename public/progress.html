@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Dashboard - Flex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #00ff88;
+            --bg: #0a0a0a;
+            --card: #141414;
+            --text: #ffffff;
+            --grey: #888888;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .nav {
+            margin-bottom: 2rem;
+        }
+
+        .nav a {
+            color: var(--grey);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid #222;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+
+        .fatigue-item {
+            margin-bottom: 1rem;
+        }
+
+        .fatigue-bar-bg {
+            background: #222;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .fatigue-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.5s ease;
+        }
+
+        .fatigue-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .pr-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .pr-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pr-item span:first-child {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav"><a href="/dashboard.html">← Back to Dashboard</a></div>
+        <h1>Flex Progress Intelligence</h1>
+
+        <div class="dashboard-grid">
+            <div class="left-col">
+                <div class="panel">
+                    <h3>Volume Load Trends</h3>
+                    <p style="color:var(--grey); font-size: 0.9rem; margin-bottom: 1.5rem;">Total weight × reps per
+                        exercise session.</p>
+                    <div id="chartsContainer"></div>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="panel" style="margin-bottom: 2rem;">
+                    <h3>Muscle Fatigue Status</h3>
+                    <p style="color:var(--grey); font-size: 0.8rem;">Heuristic recovery estimate (0-10)</p>
+                    <div id="fatigueContainer"></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Recent Personal Records</h3>
+                    <ul id="prContainer" class="pr-list">
+                        <li style="color:var(--grey)">Logging PRs as you crush them...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function init() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            const res = await fetch('/api/workout/trends', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                renderTrends(data.trends);
+                renderFatigue(data.fatigue);
+            }
+        }
+
+        function renderTrends(trends) {
+            const container = document.getElementById('chartsContainer');
+            container.innerHTML = "";
+
+            const exerciseNames = Object.keys(trends);
+            if (exerciseNames.length === 0) {
+                container.innerHTML = "<p style='color:var(--grey)'>No workout logs found yet. Start training to see your trends!</p>";
+                return;
+            }
+
+            exerciseNames.forEach(exName => {
+                const exLogs = trends[exName];
+                const canvasId = `chart-${exName.replace(/\s+/g, '-')}`;
+
+                const div = document.createElement('div');
+                div.className = "chart-container";
+                div.innerHTML = `<h4>${exName}</h4><canvas id="${canvasId}"></canvas>`;
+                container.appendChild(div);
+
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: exLogs.map(l => new Date(l.date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Volume (kg)',
+                            data: exLogs.map(l => l.volume),
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: false, grid: { color: '#222' }, ticks: { color: '#888' } },
+                            x: { grid: { display: false }, ticks: { color: '#888' } }
+                        }
+                    }
+                });
+
+                // Check for PRs
+                const prs = exLogs.filter(l => l.isPR);
+                if (prs.length > 0) {
+                    const prList = document.getElementById('prContainer');
+                    if (prList.innerText.includes('Logging PRs')) prList.innerHTML = "";
+
+                    prs.forEach(pr => {
+                        const li = document.createElement('li');
+                        li.className = "pr-item";
+                        li.innerHTML = `<span>${exName}</span> <span>${pr.volume}kg Vol</span>`;
+                        prList.prepend(li); // Newest first
+                    });
+                }
+            });
+        }
+
+        function renderFatigue(fatigue) {
+            const container = document.getElementById('fatigueContainer');
+            container.innerHTML = "";
+
+            if (fatigue.length === 0) {
+                container.innerHTML = "<p style='color:var(--grey)'>No fatigue data yet.</p>";
+                return;
+            }
+
+            fatigue.sort((a, b) => b.level - a.level).forEach(f => {
+                const percentage = (f.level / 10) * 100;
+                const color = f.level > 7 ? '#ff4444' : f.level > 4 ? '#ffcc00' : '#00ff88';
+
+                const div = document.createElement('div');
+                div.className = "fatigue-item";
+                div.innerHTML = `
+                    <div class="fatigue-label">
+                        <span>${f.muscle}</span>
+                        <span>${f.level}/10</span>
+                    </div>
+                    <div class="fatigue-bar-bg">
+                        <div class="fatigue-bar-fill" style="width: ${percentage}%; background: ${color}"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

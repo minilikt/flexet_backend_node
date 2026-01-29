@@ -1,0 +1,150 @@
+=== Exercise Database Analysis ===
+Total Exercises: 213
+Breakdown by Split:
+  Push: 60 exercises
+  Pull: 61 exercises
+  Legs: 53 exercises
+  Abs: 16 exercises
+  Full Body: 13 exercises
+  Push/Pull: 2 exercises
+  Cooldown: 4 exercises
+  Warmup: 4 exercises
+
+=== Pull Exercises Detail (61 total) ===
+
+[Barbell] (5 exercises):
+  - Barbell Row
+  - Barbell Bicep Curl
+  - Reverse Barbell Curl
+  - Sumo Deadlift
+  - Barbell Shrug
+
+[Barbell / Dumbbell] (2 exercises):
+  - Wrist Curls
+  - Reverse Wrist Curls
+
+[Barbell, Bench Support] (2 exercises):
+  - Barbell Wrist Curl
+  - Barbell Reverse Wrist Curl
+
+[Barbell, Landmine Attachment] (1 exercises):
+  - Meadows Row
+
+[Barbell, Landmine Attachment, V-Handle] (1 exercises):
+  - T-Bar Row (Landmine)
+
+[Barbell, Plates] (1 exercises):
+  - Pendlay Row
+
+[Barbell, Weight Plates] (1 exercises):
+  - Conventional Deadlift
+
+[Bench Support, Dumbbells] (1 exercises):
+  - Dumbbell Row
+
+[Bench, Dumbbell] (3 exercises):
+  - Single-Arm Dumbbell Row
+  - Concentration Curl
+  - Single-Arm Dumbbell Row
+
+[Bench, Weight Plate] (1 exercises):
+  - Neck Curls
+
+[Cable Machine, Long Bar] (1 exercises):
+  - Lat Pulldown
+
+[Cable Machine, Long Bar / Rope] (1 exercises):
+  - Straight-Arm Pulldown
+
+[Cable Machine, Rope] (3 exercises):
+  - Face Pull
+  - Rope Cable Curl
+  - Face Pulls
+
+[Cable Machine, Seated Row Platform] (1 exercises):
+  - Seated Cable Row
+
+[Cable Machine, Single Handle] (1 exercises):
+  - One-Arm Cable Row
+
+[Cable Machine, Straight Bar] (1 exercises):
+  - Cable Bicep Curl
+
+[Cable Machine, V-Bar] (1 exercises):
+  - Close-Grip Lat Pulldown
+
+[Dumbbell, Flat Bench] (1 exercises):
+  - Dumbbell Pullover
+
+[Dumbbells] (7 exercises):
+  - Dumbbell Bicep Curl
+  - Hammer Curl
+  - Zottman Curl
+  - Dumbbell Wrist Curl
+  - Dumbbell Rear Delt Fly
+  - Dumbbell Shrug
+  - Zottman Curl
+
+[Dumbbells / Machine] (1 exercises):
+  - Rear Delt Fly
+
+[Dumbbells, Incline Bench] (3 exercises):
+  - Chest Supported Row
+  - Incline Dumbbell Curl
+  - Incline Dumbbell Curl
+
+[EZ-Bar] (2 exercises):
+  - EZ-Bar Curl
+  - Reverse EZ-Bar Curl
+
+[EZ-Bar, Incline Bench] (1 exercises):
+  - Spider Curl
+
+[EZ-Bar, Preacher Bench] (1 exercises):
+  - Preacher Curl
+
+[Heavy Dumbbells / Handles] (1 exercises):
+  - Farmer's Walk
+
+[Heavy Dumbbells / Kettlebells] (1 exercises):
+  - Farmer's Walk
+
+[Kettlebell] (1 exercises):
+  - Kettlebell Snatch
+
+[Mat] (1 exercises):
+  - Superman Hold
+
+[None] (1 exercises):
+  - Isometric Neck Hold
+
+[Pec Deck Machine] (1 exercises):
+  - Reverse Pec Deck
+
+[Pull-Up Bar] (5 exercises):
+  - Pull-Up
+  - Chin-Up
+  - Wide-Grip Pull-Up
+  - Dead Hang
+  - Dead Hang
+
+[Pull-Up Bar / Smith Machine] (1 exercises):
+  - Inverted Row
+
+[Rope, Sled] (1 exercises):
+  - Sled Pull
+
+[Smith Machine] (1 exercises):
+  - Smith Machine Shrug
+
+[T-Bar Platform / Landmine] (1 exercises):
+  - T-Bar Row
+
+[T-Bar Row Machine] (1 exercises):
+  - Chest Supported T-Bar Row
+
+[Weight Plate / Harness] (1 exercises):
+  - Neck Extensions
+
+[Weight Plates] (1 exercises):
+  - Plate Pinch Hold

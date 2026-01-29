@@ -79,34 +79,239 @@ class WorkoutGenerator {
         return array;
     }
 
-    applyGoalLogic(exercise, goal) {
-        const setsReps = {
+    /**
+     * Determines if a deload week should be inserted based on recovery data.
+     */
+    async getDeloadStatus(userId, weekNumber) {
+        if (!userId) return { shouldDeload: false, reason: '' };
+
+        // Check for systemic fatigue from DailyRecoveryLog
+        const recentLogs = await this.prisma.dailyRecoveryLog.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: 7
+        });
+
+        if (recentLogs.length >= 3) {
+            const avgFatigue = recentLogs.reduce((acc, log) => acc + (log.systemicFatigue || 0), 0) / recentLogs.length;
+            const avgSoreness = recentLogs.reduce((acc, log) => acc + (log.sorenessLevel || 0), 0) / recentLogs.length;
+
+            if (avgFatigue >= 7 || avgSoreness >= 8) {
+                return {
+                    shouldDeload: true,
+                    reason: `High systemic fatigue (${avgFatigue.toFixed(1)}) or soreness (${avgSoreness.toFixed(1)})`
+                };
+            }
+        }
+
+        // Auto-deload every 4th week as standard periodization
+        if (weekNumber % 4 === 0) {
+            return {
+                shouldDeload: true,
+                reason: 'Scheduled deload (Week 4 of cycle)'
+            };
+        }
+
+        return { shouldDeload: false, reason: '' };
+    }
+
+    /**
+     * Finds an alternative exercise based on muscle group and user preferences.
+     */
+    async getExerciseAlternative(exerciseId, userId, availableEquipment) {
+        const original = await this.prisma.exercise.findUnique({
+            where: { id: exerciseId },
+            include: {
+                muscles: true,
+                ExerciseToAlternative_ExerciseToAlternative_exerciseIdToExercise: {
+                    include: {
+                        Exercise_ExerciseToAlternative_alternativeIdToExercise: true
+                    }
+                }
+            }
+        });
+
+        if (!original) return null;
+
+        // First try explicit alternatives
+        const alternatives = original.ExerciseToAlternative_ExerciseToAlternative_exerciseIdToExercise
+            .map(alt => alt.Exercise_ExerciseToAlternative_alternativeIdToExercise);
+
+        if (alternatives.length > 0) {
+            const filtered = await this.filterByEquipment(availableEquipment, userId, alternatives);
+            if (filtered.length > 0) return filtered[0];
+        }
+
+        // Fallback: find exercises with same primary muscles
+        const primaryMuscles = original.muscles.filter(m => m.role === 'PRIMARY').map(m => m.muscleId);
+        if (primaryMuscles.length === 0) return null;
+
+        const similar = await this.prisma.exercise.findMany({
+            where: {
+                muscles: {
+                    some: {
+                        muscleId: { in: primaryMuscles },
+                        role: 'PRIMARY'
+                    }
+                },
+                id: { not: exerciseId }
+            },
+            include: {
+                equipment: { include: { equipment: true } },
+                split: true,
+                muscles: true
+            },
+            take: 10
+        });
+
+        const filtered = await this.filterByEquipment(availableEquipment, userId, similar);
+        return filtered.length > 0 ? filtered[0] : null;
+    }
+
+    /**
+     * Calculates progression factors for multi-week plans.
+     */
+    calculateProgressionFactor(weekNumber, progressionModel = 'LINEAR') {
+        switch (progressionModel.toUpperCase()) {
+            case 'LINEAR':
+                return {
+                    weightMultiplier: 1.0,
+                    repAdjustment: 0
+                };
+            case 'WAVE':
+                const phase = (weekNumber - 1) % 3;
+                return {
+                    weightMultiplier: [0.85, 0.92, 1.0][phase],
+                    repAdjustment: 0
+                };
+            default:
+                return {
+                    weightMultiplier: 1.0,
+                    repAdjustment: 0
+                };
+        }
+    }
+
+    /**
+     * Applies adaptive logic based on user's past performance and goals.
+     * Implements Progressive Overload, Volume Regulation, and intelligent adaptation.
+     */
+    async applyGoalLogic(exercise, goal, userId = null, pastLogs = [], weekNumber = 1, progressionModel = 'LINEAR') {
+        const defaults = {
             sets: exercise.defaultSets || 3,
             reps: exercise.defaultReps || "8-12",
-            restMin: exercise.restMin,
-            restMax: exercise.restMax
+            restMin: exercise.restMin || 1.5,
+            restMax: exercise.restMax || 2,
+            weight: 0,
+            isAdaptive: false
         };
 
-        if (setsReps.reps !== "AMRAP") {
-            switch (goal.toLowerCase()) {
-                case 'strength':
-                    setsReps.sets = 4;
-                    setsReps.reps = "3-5";
-                    setsReps.restMin = Math.max(setsReps.restMin || 2, 3);
-                    setsReps.restMax = Math.max(setsReps.restMax || 3, 5);
-                    break;
-                case 'endurance':
-                    setsReps.sets = 3;
-                    setsReps.reps = "15-20";
-                    setsReps.restMin = 0.5;
-                    setsReps.restMax = 1;
-                    break;
-                case 'hypertrophy':
-                default:
-                    setsReps.sets = 3;
-                    setsReps.reps = "8-12";
-                    break;
+        // If no user or no past logs, return defaults
+        if (!userId || pastLogs.length === 0) {
+            return {
+                exerciseId: exercise.id,
+                name: exercise.name,
+                ...defaults,
+                note: pastLogs.length === 0 && userId ? "Initial week, using baseline" : ""
+            };
+        }
+
+        // --- ANALYZE PERFORMANCE DATA ---
+        const avgRPE = pastLogs.reduce((acc, log) => acc + (log.rpe || 7), 0) / pastLogs.length;
+        const lastWeight = pastLogs[0].weight || 0;
+        const lastReps = pastLogs[0].actualReps || 10;
+        const recentHighRPE = pastLogs.filter(log => (log.rpe || 7) >= 9).length;
+
+        let newWeight = lastWeight;
+        let newSets = defaults.sets;
+        let adaptiveNotes = [];
+
+        // --- PROGRESSIVE OVERLOAD MODELS ---
+        switch (progressionModel.toUpperCase()) {
+            case 'LINEAR':
+                // Simple linear progression: add weight if RPE is manageable
+                if (avgRPE < 7) {
+                    newWeight += 2.5;
+                    adaptiveNotes.push(`RPE ${avgRPE.toFixed(1)} - increasing weight +2.5kg`);
+                } else if (avgRPE >= 7 && avgRPE < 8.5) {
+                    newWeight += 1.25;
+                    adaptiveNotes.push(`RPE ${avgRPE.toFixed(1)} - small weight increase +1.25kg`);
+                } else if (avgRPE > 9) {
+                    adaptiveNotes.push(`RPE ${avgRPE.toFixed(1)} - maintaining weight for form`);
+                }
+                break;
+
+            case 'DOUBLE_PROGRESSION':
+                // Increase reps first, then weight when hitting top of range
+                const [minReps, maxReps] = defaults.reps.split('-').map(r => parseInt(r.trim()));
+                if (lastReps >= maxReps && avgRPE < 8) {
+                    newWeight += 2.5;
+                    adaptiveNotes.push(`Hit ${maxReps} reps, increasing weight +2.5kg`);
+                } else if (avgRPE < 7) {
+                    adaptiveNotes.push(`RPE low, aim for ${maxReps} reps before weight increase`);
+                }
+                break;
+
+            case 'WAVE':
+                // Wave periodization: vary intensity across weeks
+                const wavePhase = (weekNumber - 1) % 3; // 0=light, 1=medium, 2=heavy
+                const intensityMultipliers = [0.85, 0.92, 1.0];
+                newWeight = lastWeight * intensityMultipliers[wavePhase];
+                const phases = ['Light', 'Medium', 'Heavy'];
+                adaptiveNotes.push(`Wave Week ${wavePhase + 1}/3 (${phases[wavePhase]})`);
+                break;
+
+            default:
+                // Fallback to linear
+                if (avgRPE < 7) {
+                    newWeight += 2.5;
+                    adaptiveNotes.push('Increasing weight');
+                }
+        }
+
+        // --- VOLUME REGULATION ---
+        // Check if user is consistently hitting high RPE (overreaching)
+        if (recentHighRPE >= 2 && pastLogs.length >= 2) {
+            newSets = Math.max(2, defaults.sets - 1);
+            adaptiveNotes.push(`High RPE detected (${recentHighRPE}/${pastLogs.length} sessions), reducing volume`);
+        }
+
+        // Check muscle recovery if available
+        if (userId && exercise.muscles && exercise.muscles.length > 0) {
+            const primaryMuscles = exercise.muscles.filter(m => m.role === 'PRIMARY').map(m => m.muscleId);
+            if (primaryMuscles.length > 0) {
+                const recoveryLogs = await this.prisma.muscleRecoveryLog.findMany({
+                    where: {
+                        userId,
+                        muscleId: { in: primaryMuscles }
+                    }
+                });
+
+                const highFatigue = recoveryLogs.some(log => log.fatigueLevel >= 8);
+                if (highFatigue) {
+                    newSets = Math.max(2, newSets - 1);
+                    adaptiveNotes.push('Muscle fatigue high, reducing sets');
+                }
             }
+        }
+
+        const setsReps = {
+            sets: newSets,
+            reps: defaults.reps,
+            weight: Math.round(newWeight * 4) / 4, // Round to nearest 0.25
+            note: adaptiveNotes.join(' | '),
+            isAdaptive: true
+        };
+
+        // Apply Goal Specific Overlays
+        switch (goal.toLowerCase()) {
+            case 'strength':
+                setsReps.sets = Math.max(setsReps.sets, 4);
+                setsReps.reps = "3-5";
+                break;
+            case 'endurance':
+                setsReps.reps = "15-20";
+                break;
         }
 
         return {
@@ -122,41 +327,88 @@ class WorkoutGenerator {
             days_per_week,
             available_equipment,
             exercises_per_day = 6,
-            weeks = 1
+            weeks = 1,
+            progressionModel = 'LINEAR'
         } = specs;
 
         const MIN_EXERCISES = 4;
         const TARGET_EXERCISES = Math.max(exercises_per_day, MIN_EXERCISES);
 
         const daysPerWeek = parseInt(days_per_week);
-        console.log(`Generating adaptive plan for User ${userId}`);
+        console.log(`Generating adaptive plan [v3] for User ${userId}, ${weeks} weeks`);
+
+        // Batch fetch all performance logs for the user at the start to avoid N+1 issues
+        let performanceMap = new Map();
+        if (userId) {
+            const allLogs = await this.prisma.exercisePerformanceLog.findMany({
+                where: {
+                    workoutExercise: {
+                        session: {
+                            plan: {
+                                userId
+                            }
+                        }
+                    }
+                },
+                include: { workoutExercise: true },
+                orderBy: { createdAt: 'desc' }
+            });
+            // Group by exerciseId
+            allLogs.forEach(log => {
+                const exId = log.workoutExercise?.exerciseId;
+                if (!performanceMap.has(exId)) performanceMap.set(exId, []);
+                if (performanceMap.get(exId).length < 3) performanceMap.get(exId).push(log);
+            });
+        }
 
         const filtered = await this.filterByEquipment(available_equipment, userId);
-        console.log(`Filtered exercises pool size: ${filtered.length}`);
 
-        if (filtered.length < MIN_EXERCISES) {
-            throw new Error(`Only ${filtered.length} exercises match your equipment. We need at least ${MIN_EXERCISES}. Please add more equipment like 'Dumbbells' or 'Barbell'.`);
-        }
+        // --- FEEDBACK PRIORITIZATION ---
+        // Sort: LIKE first, then others. AVOID is already filtered out in filterByEquipment.
+        const userIdRef = userId;
+        const feedbacks = userId ? await this.prisma.exerciseFeedback.findMany({ where: { userId } }) : [];
+        const preferMap = new Map(feedbacks.map(f => [f.exerciseId, f.preference]));
+
+        filtered.sort((a, b) => {
+            const prefA = preferMap.get(a.id) === 'LIKE' ? 1 : 0;
+            const prefB = preferMap.get(b.id) === 'LIKE' ? 1 : 0;
+            return prefB - prefA; // Descending (1 comes before 0)
+        });
+
+        console.log(`Pool size: ${filtered.length}. Top of pool: ${filtered.slice(0, 3).map(e => e.name).join(', ')}`);
 
         const fullPlan = [];
         const splitMap = this.getSplitMap(daysPerWeek);
 
         for (let week = 1; week <= weeks; week++) {
-            const weekPlan = { week, sessions: [] };
+            // --- DELOAD DETECTION ---
+            const deloadStatus = await this.getDeloadStatus(userId, week);
+            const isDeloadWeek = deloadStatus.shouldDeload;
+
+            const weekPlan = {
+                week,
+                sessions: [],
+                isDeload: isDeloadWeek,
+                deloadReason: deloadStatus.reason || undefined
+            };
             const usedInWeek = new Set();
 
             for (let day = 1; day <= daysPerWeek; day++) {
                 const targetSplits = splitMap[day] || ['Push', 'Pull', 'Legs'];
-                console.log(`Day ${day} Split: ${targetSplits.join('/')}`);
 
-                // Stage 1: Unique exercises within the split
                 let selected = filtered.filter(ex =>
                     targetSplits.includes(ex.split?.name) && !usedInWeek.has(ex.id)
                 );
-                this.shuffle(selected);
-                selected = selected.slice(0, TARGET_EXERCISES);
 
-                // Stage 2: If not enough, allow duplicates from the same split (already used this week)
+                // Don't just shuffle immediately, protect the 'LIKE' ones at the top
+                // We'll shuffle within preference groups
+                const likes = selected.filter(ex => preferMap.get(ex.id) === 'LIKE');
+                const others = selected.filter(ex => preferMap.get(ex.id) !== 'LIKE');
+                this.shuffle(likes);
+                this.shuffle(others);
+
+                selected = [...likes, ...others].slice(0, TARGET_EXERCISES);
+
                 if (selected.length < TARGET_EXERCISES) {
                     const remaining = TARGET_EXERCISES - selected.length;
                     let repeats = filtered.filter(ex =>
@@ -166,34 +418,31 @@ class WorkoutGenerator {
                     selected.push(...repeats.slice(0, remaining));
                 }
 
-                // Stage 3: If still not enough, take related exercises (Full Body)
-                if (selected.length < TARGET_EXERCISES) {
-                    const remaining = TARGET_EXERCISES - selected.length;
-                    let fullBodyFallbacks = filtered.filter(ex =>
-                        (ex.split?.name === 'Full Body' || ex.split?.name === 'Abs') &&
-                        !selected.find(s => s.id === ex.id)
-                    );
-                    this.shuffle(fullBodyFallbacks);
-                    selected.push(...fullBodyFallbacks.slice(0, remaining));
-                }
+                // Final sessions building
+                const exercises = [];
+                for (const ex of selected) {
+                    usedInWeek.add(ex.id);
+                    // Pass the pre-fetched logs to applyGoalLogic
+                    const pastLogs = performanceMap.get(ex.id) || [];
+                    const exerciseData = await this.applyGoalLogic(ex, goal, userId, pastLogs, week, progressionModel);
 
-                // Stage 4: Absolute final fallback - take anything from the filtered pool to hit MIN_EXERCISES
-                if (selected.length < MIN_EXERCISES) {
-                    const remaining = MIN_EXERCISES - selected.length;
-                    let anyFallback = filtered.filter(ex => !selected.find(s => s.id === ex.id));
-                    this.shuffle(anyFallback);
-                    selected.push(...anyFallback.slice(0, remaining));
-                }
+                    // --- APPLY DELOAD MODIFICATIONS ---
+                    if (isDeloadWeek) {
+                        exerciseData.weight = Math.round(exerciseData.weight * 0.8 * 4) / 4; // 20% reduction
+                        exerciseData.sets = Math.max(2, exerciseData.sets - 1);
+                        const deloadNote = `DELOAD: ${deloadStatus.reason}`;
+                        exerciseData.note = exerciseData.note
+                            ? `${deloadNote} | ${exerciseData.note}`
+                            : deloadNote;
+                    }
 
-                console.log(`Day ${day} final count: ${selected.length}`);
+                    exercises.push(exerciseData);
+                }
 
                 weekPlan.sessions.push({
                     dayNumber: day,
                     focus: targetSplits.join(' / '),
-                    exercises: selected.map(ex => {
-                        usedInWeek.add(ex.id);
-                        return this.applyGoalLogic(ex, goal);
-                    })
+                    exercises: exercises
                 });
             }
             fullPlan.push(weekPlan);
