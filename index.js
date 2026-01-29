@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./src/routes/auth.routes');
 const workoutRoutes = require('./src/routes/workout.routes');
 const logRoutes = require('./src/routes/log.routes');
+const userRoutes = require('./src/routes/user.routes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.get('/api/yo', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/workout', workoutRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/users', userRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

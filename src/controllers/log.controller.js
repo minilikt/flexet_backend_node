@@ -257,7 +257,15 @@ async function recalculateRemainingPlan(userId) {
 
     // Pre-fetch all performance logs for the user to optimize
     const allLogs = await prisma.exercisePerformanceLog.findMany({
-        where: { workoutExercise: { userId } },
+        where: {
+            workoutExercise: {
+                session: {
+                    plan: {
+                        userId: userId
+                    }
+                }
+            }
+        },
         include: { workoutExercise: true },
         orderBy: { createdAt: 'desc' }
     });

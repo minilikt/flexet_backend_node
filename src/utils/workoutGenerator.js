@@ -437,6 +437,22 @@ class WorkoutGenerator {
                     }
 
                     exercises.push(exerciseData);
+
+                    // --- PROGRESSION SIMULATION ---
+                    // "Mock" this session as completed so next week's generation sees it as history.
+                    // We assume the user creates a "Perfect" log (Target Reps @ RPE 8)
+                    const targetReps = parseInt(exerciseData.reps.split('-')[1]) || parseInt(exerciseData.reps) || 10;
+                    const mockLog = {
+                        rpe: 8,
+                        weight: exerciseData.weight,
+                        actualReps: targetReps,
+                        createdAt: new Date() // Timestamp doesn't matter for logic, just order
+                    };
+
+                    // Add to performance map for next week's iterations
+                    if (!performanceMap.has(ex.id)) performanceMap.set(ex.id, []);
+                    // Add to front (most recent)
+                    performanceMap.get(ex.id).unshift(mockLog);
                 }
 
                 weekPlan.sessions.push({

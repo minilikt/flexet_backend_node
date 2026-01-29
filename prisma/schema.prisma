@@ -15,6 +15,21 @@ model User {
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
   workoutPlans  WorkoutPlan[]
+  
+  // Profile Fields
+  gender        String?
+  age           Int?
+  height        Float?   // cm
+  weight        Float?   // kg
+  goal          String?  // lose_weight, maintain, muscle_mass, strength
+  trainingLevel String?  // beginner, intermediate, advanced
+  activityLevel String?  // sedentary, active, etc.
+  
+  // Preferences & Lifestyle
+  equipment     String[] // gym, home, dumbbells, etc.
+  workoutDays   String[] // Monday, Tuesday, etc.
+  sleepHours    Float?
+  waterIntake   Float?   // liters
 }
 
 model RefreshToken {
