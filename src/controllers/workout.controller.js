@@ -7,8 +7,38 @@ const generateWorkout = async (req, res) => {
         const specs = req.body;
         const userId = req.user.userId;
 
+        // --- VALIDATION ---
+        if (!specs.goal) {
+            return res.status(400).json({ success: false, message: 'Goal is required' });
+        }
+
+        const daysPerWeek = parseInt(specs.days_per_week);
+        if (isNaN(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+            return res.status(400).json({ success: false, message: 'Invalid days_per_week. Must be 1-7.' });
+        }
+
+        const weeks = parseInt(specs.weeks) || 4;
+        if (weeks < 1 || weeks > 12) {
+            return res.status(400).json({ success: false, message: 'Invalid weeks. Must be 1-12.' });
+        }
+
+        // Fetch user profile to get workoutDays if not provided in specs
+        let workoutDays = specs.workoutDays;
+        if (!workoutDays || workoutDays.length === 0) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { workoutDays: true }
+            });
+            workoutDays = user?.workoutDays || [];
+        }
+
         const generator = new WorkoutGenerator(prisma);
-        const fullPlan = await generator.generatePlan(specs, userId);
+        const fullPlan = await generator.generatePlan({
+            ...specs,
+            weeks,
+            days_per_week: daysPerWeek,
+            workoutDays
+        }, userId);
 
         // Check for existing ACTIVE plan
         const existingPlan = await prisma.workoutPlan.findFirst({
@@ -17,11 +47,14 @@ const generateWorkout = async (req, res) => {
 
         let savedPlan;
 
+        const transactionOptions = {
+            maxWait: 10000, // Increased for safety
+            timeout: 30000
+        };
+
         if (existingPlan) {
             console.log(`Updating existing plan: ${existingPlan.id}`);
-            // Use a transaction to delete old sessions and add new ones to the same plan
             savedPlan = await prisma.$transaction(async (tx) => {
-                // Delete existing sessions (cascades to exercises)
                 await tx.workoutSession.deleteMany({ where: { planId: existingPlan.id } });
 
                 return await tx.workoutPlan.update({
@@ -31,12 +64,13 @@ const generateWorkout = async (req, res) => {
                         goal: specs.goal,
                         level: specs.level || null,
                         splitType: specs.split_type || 'Dynamic',
-                        daysPerWeek: parseInt(specs.days_per_week),
-                        weeks: parseInt(specs.weeks) || 4,
+                        daysPerWeek: daysPerWeek,
+                        weeks: weeks,
                         sessions: {
                             create: fullPlan.flatMap(week => week.sessions.map(session => ({
                                 weekNumber: week.week,
                                 dayNumber: session.dayNumber,
+                                dayLabel: session.dayLabel,
                                 focus: session.focus,
                                 exercises: {
                                     create: session.exercises.map((ex, index) => ({
@@ -56,9 +90,8 @@ const generateWorkout = async (req, res) => {
                         sessions: { include: { exercises: { include: { exercise: true } } } }
                     }
                 });
-            });
+            }, transactionOptions);
         } else {
-            // Create brand new plan
             savedPlan = await prisma.workoutPlan.create({
                 data: {
                     userId,
@@ -66,12 +99,13 @@ const generateWorkout = async (req, res) => {
                     goal: specs.goal,
                     level: specs.level || null,
                     splitType: specs.split_type || 'Dynamic',
-                    daysPerWeek: parseInt(specs.days_per_week),
-                    weeks: parseInt(specs.weeks) || 4,
+                    daysPerWeek: daysPerWeek,
+                    weeks: weeks,
                     sessions: {
                         create: fullPlan.flatMap(week => week.sessions.map(session => ({
                             weekNumber: week.week,
                             dayNumber: session.dayNumber,
+                            dayLabel: session.dayLabel,
                             focus: session.focus,
                             exercises: {
                                 create: session.exercises.map((ex, index) => ({

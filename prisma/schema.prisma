@@ -164,6 +164,7 @@ model WorkoutSession {
   plan         WorkoutPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
   weekNumber   Int
   dayNumber    Int
+  dayLabel     String?            // e.g., "Monday"
   focus        String?
   isCompleted  Boolean            @default(false)
   completedAt  DateTime?

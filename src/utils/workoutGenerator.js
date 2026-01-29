@@ -325,6 +325,7 @@ class WorkoutGenerator {
         const {
             goal,
             days_per_week,
+            workoutDays = [],
             available_equipment,
             exercises_per_day = 6,
             weeks = 1,
@@ -335,9 +336,9 @@ class WorkoutGenerator {
         const TARGET_EXERCISES = Math.max(exercises_per_day, MIN_EXERCISES);
 
         const daysPerWeek = parseInt(days_per_week);
-        console.log(`Generating adaptive plan [v3] for User ${userId}, ${weeks} weeks`);
+        console.log(`Generating adaptive plan [v4] for User ${userId}, ${weeks} weeks, ${daysPerWeek} days/week`);
 
-        // Batch fetch all performance logs for the user at the start to avoid N+1 issues
+        // Batch fetch all performance logs for the user at the start
         let performanceMap = new Map();
         if (userId) {
             const allLogs = await this.prisma.exercisePerformanceLog.findMany({
@@ -353,7 +354,6 @@ class WorkoutGenerator {
                 include: { workoutExercise: true },
                 orderBy: { createdAt: 'desc' }
             });
-            // Group by exerciseId
             allLogs.forEach(log => {
                 const exId = log.workoutExercise?.exerciseId;
                 if (!performanceMap.has(exId)) performanceMap.set(exId, []);
@@ -361,27 +361,29 @@ class WorkoutGenerator {
             });
         }
 
+        // Batch fetch muscle recovery logs
+        let recoveryMap = new Map();
+        if (userId) {
+            const recoveries = await this.prisma.muscleRecoveryLog.findMany({ where: { userId } });
+            recoveries.forEach(r => recoveryMap.set(r.muscleId, r.fatigueLevel));
+        }
+
         const filtered = await this.filterByEquipment(available_equipment, userId);
 
-        // --- FEEDBACK PRIORITIZATION ---
-        // Sort: LIKE first, then others. AVOID is already filtered out in filterByEquipment.
-        const userIdRef = userId;
+        // Feedback Prioritization
         const feedbacks = userId ? await this.prisma.exerciseFeedback.findMany({ where: { userId } }) : [];
         const preferMap = new Map(feedbacks.map(f => [f.exerciseId, f.preference]));
 
         filtered.sort((a, b) => {
             const prefA = preferMap.get(a.id) === 'LIKE' ? 1 : 0;
             const prefB = preferMap.get(b.id) === 'LIKE' ? 1 : 0;
-            return prefB - prefA; // Descending (1 comes before 0)
+            return prefB - prefA;
         });
-
-        console.log(`Pool size: ${filtered.length}. Top of pool: ${filtered.slice(0, 3).map(e => e.name).join(', ')}`);
 
         const fullPlan = [];
         const splitMap = this.getSplitMap(daysPerWeek);
 
         for (let week = 1; week <= weeks; week++) {
-            // --- DELOAD DETECTION ---
             const deloadStatus = await this.getDeloadStatus(userId, week);
             const isDeloadWeek = deloadStatus.shouldDeload;
 
@@ -395,13 +397,12 @@ class WorkoutGenerator {
 
             for (let day = 1; day <= daysPerWeek; day++) {
                 const targetSplits = splitMap[day] || ['Push', 'Pull', 'Legs'];
+                const dayLabel = workoutDays[day - 1] || `Day ${day}`;
 
                 let selected = filtered.filter(ex =>
                     targetSplits.includes(ex.split?.name) && !usedInWeek.has(ex.id)
                 );
 
-                // Don't just shuffle immediately, protect the 'LIKE' ones at the top
-                // We'll shuffle within preference groups
                 const likes = selected.filter(ex => preferMap.get(ex.id) === 'LIKE');
                 const others = selected.filter(ex => preferMap.get(ex.id) !== 'LIKE');
                 this.shuffle(likes);
@@ -418,45 +419,38 @@ class WorkoutGenerator {
                     selected.push(...repeats.slice(0, remaining));
                 }
 
-                // Final sessions building
                 const exercises = [];
                 for (const ex of selected) {
                     usedInWeek.add(ex.id);
-                    // Pass the pre-fetched logs to applyGoalLogic
                     const pastLogs = performanceMap.get(ex.id) || [];
+
+                    // Use pre-fetched recovery data
                     const exerciseData = await this.applyGoalLogic(ex, goal, userId, pastLogs, week, progressionModel);
 
-                    // --- APPLY DELOAD MODIFICATIONS ---
                     if (isDeloadWeek) {
-                        exerciseData.weight = Math.round(exerciseData.weight * 0.8 * 4) / 4; // 20% reduction
+                        exerciseData.weight = Math.round(exerciseData.weight * 0.8 * 4) / 4;
                         exerciseData.sets = Math.max(2, exerciseData.sets - 1);
                         const deloadNote = `DELOAD: ${deloadStatus.reason}`;
-                        exerciseData.note = exerciseData.note
-                            ? `${deloadNote} | ${exerciseData.note}`
-                            : deloadNote;
+                        exerciseData.note = exerciseData.note ? `${deloadNote} | ${exerciseData.note}` : deloadNote;
                     }
 
                     exercises.push(exerciseData);
 
-                    // --- PROGRESSION SIMULATION ---
-                    // "Mock" this session as completed so next week's generation sees it as history.
-                    // We assume the user creates a "Perfect" log (Target Reps @ RPE 8)
+                    // Mock progression
                     const targetReps = parseInt(exerciseData.reps.split('-')[1]) || parseInt(exerciseData.reps) || 10;
                     const mockLog = {
                         rpe: 8,
                         weight: exerciseData.weight,
                         actualReps: targetReps,
-                        createdAt: new Date() // Timestamp doesn't matter for logic, just order
+                        createdAt: new Date()
                     };
-
-                    // Add to performance map for next week's iterations
                     if (!performanceMap.has(ex.id)) performanceMap.set(ex.id, []);
-                    // Add to front (most recent)
                     performanceMap.get(ex.id).unshift(mockLog);
                 }
 
                 weekPlan.sessions.push({
                     dayNumber: day,
+                    dayLabel: dayLabel,
                     focus: targetSplits.join(' / '),
                     exercises: exercises
                 });
@@ -474,6 +468,7 @@ class WorkoutGenerator {
         const fb = ['Push', 'Pull', 'Legs'];
         const u = ['Push', 'Pull'];
 
+        // Intelligent split mapping
         const maps = {
             1: { 1: fb },
             2: { 1: u, 2: l },
@@ -484,7 +479,7 @@ class WorkoutGenerator {
             7: { 1: p, 2: pl, 3: l, 4: p, 5: pl, 6: l, 7: fb }
         };
 
-        return maps[days] || maps[3]; // Fallback to 3-day PPL
+        return maps[days] || maps[3];
     }
 }
 
