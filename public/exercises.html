@@ -54,6 +54,7 @@
             margin-bottom: 1rem;
             background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -392,7 +393,9 @@
         async function fetchMetadata() {
             try {
                 const res = await fetch('/api/exercises/metadata');
-                const { metadata } = await res.json();
+                const json = await res.json();
+                const metadata = json.data.metadata;
+
 
                 renderFilters('muscleFilters', metadata.muscles, 'muscle');
                 renderFilters('equipmentFilters', metadata.equipment, 'equipment');
@@ -448,9 +451,11 @@
 
                 const res = await fetch(`/api/exercises?${params.toString()}`);
                 const data = await res.json();
+                const exercises = data.data.exercises;
+                const count = data.data.count;
 
-                renderExercises(data.exercises);
-                document.getElementById('exerciseCount').innerText = `Found ${data.count} exercises`;
+                renderExercises(exercises);
+                document.getElementById('exerciseCount').innerText = `Found ${count} exercises`;
             } catch (err) {
                 grid.innerHTML = `<div style="color: #ef4444">Error loading exercises</div>`;
             }

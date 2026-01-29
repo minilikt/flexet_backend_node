@@ -202,10 +202,10 @@
             });
             const data = await res.json();
             if (res.ok) {
-                renderPlans(data.plans);
+                renderPlans(data.data.plans);
             } else {
                 if (res.status === 401) logout();
-                document.getElementById('plansList').innerHTML = 'Failed to load plans.';
+                document.getElementById('plansList').innerHTML = data.message || 'Failed to load plans.';
             }
         }
 

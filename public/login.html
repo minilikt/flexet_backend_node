@@ -124,7 +124,7 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('accessToken', data.data.accessToken);
                     window.location.href = '/dashboard.html';
                 } else {
                     alert(data.message);

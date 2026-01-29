@@ -274,7 +274,10 @@
                     body: JSON.stringify(data)
                 });
 
-                if (!profileRes.ok) throw new Error((await profileRes.json()).message || 'Profile update failed');
+                if (!profileRes.ok) {
+                    const errorJson = await profileRes.json();
+                    throw new Error(errorJson.message || 'Profile update failed');
+                }
 
                 // 2. Generate Workout Plan
                 // Note: backend now accepts workoutDays array directly

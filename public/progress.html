@@ -157,8 +157,8 @@
             const data = await res.json();
 
             if (data.success) {
-                renderTrends(data.trends);
-                renderFatigue(data.fatigue);
+                renderTrends(data.data.trends);
+                renderFatigue(data.data.fatigue);
             }
         }
 

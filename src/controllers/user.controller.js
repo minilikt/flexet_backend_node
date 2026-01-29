@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendResponse } = require('../utils/response.utils');
+
 
 const updateProfile = async (req, res) => {
     try {
@@ -47,14 +49,12 @@ const updateProfile = async (req, res) => {
         // Remove password from response
         const { password, ...userProfile } = updatedUser;
 
-        res.json({
-            message: 'Profile updated successfully',
-            user: userProfile
-        });
+        sendResponse(res, 200, 'Profile updated successfully', { user: userProfile });
+
 
     } catch (error) {
         console.error('Update profile error:', error);
-        res.status(500).json({ message: 'Error updating profile' });
+        sendResponse(res, 500, 'Error updating profile', null, error.message);
     }
 };
 
@@ -66,15 +66,16 @@ const getProfile = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendResponse(res, 404, 'User not found');
         }
 
         const { password, ...userProfile } = user;
-        res.json(userProfile);
+        sendResponse(res, 200, 'Profile fetched successfully', { user: userProfile });
+
 
     } catch (error) {
         console.error('Get profile error:', error);
-        res.status(500).json({ message: 'Error fetching profile' });
+        sendResponse(res, 500, 'Error fetching profile', null, error.message);
     }
 };
 

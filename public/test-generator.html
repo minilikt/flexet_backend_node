@@ -47,6 +47,7 @@
             font-size: 3rem;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
         }
@@ -326,7 +327,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    renderPlan(data.plan);
+                    renderPlan(data.data.plan);
                 } else {
                     planContent.innerHTML = `<p style="color: var(--accent)">Error: ${data.message}</p>`;
                 }

@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { startOfDay, endOfDay, subDays, eachDayOfInterval, format } = require('date-fns');
+const { sendResponse } = require('../utils/response.utils');
+
 
 const getDashboardSummary = async (req, res) => {
     try {
@@ -85,8 +87,7 @@ const getDashboardSummary = async (req, res) => {
 
         const weeklyTonnage = volumeLogs.reduce((acc, log) => acc + ((log.weight || 0) * (log.actualReps || 0)), 0);
 
-        res.json({
-            success: true,
+        sendResponse(res, 200, 'Dashboard summary fetched successfully', {
             summary: {
                 currentStreak,
                 progressPercent,
@@ -95,9 +96,10 @@ const getDashboardSummary = async (req, res) => {
             }
         });
 
+
     } catch (error) {
         console.error('Error fetching dashboard summary:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch dashboard summary' });
+        sendResponse(res, 500, 'Failed to fetch dashboard summary', null, error.message);
     }
 };
 
@@ -147,14 +149,12 @@ const getMuscleDistribution = async (req, res) => {
             });
         });
 
-        res.json({
-            success: true,
-            distribution: muscleVolume
-        });
+        sendResponse(res, 200, 'Muscle distribution fetched successfully', { distribution: muscleVolume });
+
 
     } catch (error) {
         console.error('Error fetching muscle distribution:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch muscle distribution' });
+        sendResponse(res, 500, 'Failed to fetch muscle distribution', null, error.message);
     }
 };
 
@@ -166,13 +166,11 @@ const getBodyMetrics = async (req, res) => {
             orderBy: { date: 'asc' }
         });
 
-        res.json({
-            success: true,
-            metrics
-        });
+        sendResponse(res, 200, 'Body metrics fetched successfully', { metrics });
+
     } catch (error) {
         console.error('Error fetching body metrics:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch body metrics' });
+        sendResponse(res, 500, 'Failed to fetch body metrics', null, error.message);
     }
 };
 
@@ -205,13 +203,11 @@ const logBodyMetric = async (req, res) => {
             }
         });
 
-        res.json({
-            success: true,
-            metric
-        });
+        sendResponse(res, 200, 'Body metric logged successfully', { metric });
+
     } catch (error) {
         console.error('Error logging body metric:', error);
-        res.status(500).json({ success: false, message: 'Failed to log body metric' });
+        sendResponse(res, 500, 'Failed to log body metric', null, error.message);
     }
 };
 

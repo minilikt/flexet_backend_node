@@ -181,8 +181,8 @@
             });
             const data = await res.json();
 
-            if (data.success && data.plans.length > 0) {
-                const plan = data.plans[0];
+            if (data.success && data.data.plans.length > 0) {
+                const plan = data.data.plans[0];
                 currentSession = plan.sessions.find(s => !s.isCompleted) || plan.sessions[0];
                 renderSession();
             } else {

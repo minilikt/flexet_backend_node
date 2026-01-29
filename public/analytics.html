@@ -55,6 +55,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             text-decoration: none;
         }
@@ -352,7 +353,9 @@
             const res = await fetch('/api/analytics/summary', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            const { summary } = await res.json();
+            const json = await res.json();
+            const summary = json.data.summary;
+
 
             document.getElementById('streakValue').innerText = `${summary.currentStreak} Days`;
             document.getElementById('volumeValue').innerText = `${summary.weeklyTonnage.toLocaleString()} kg`;
@@ -371,7 +374,9 @@
             const res = await fetch('/api/analytics/muscles', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            const { distribution } = await res.json();
+            const json = await res.json();
+            const distribution = json.data.distribution;
+
 
             const labels = Object.keys(distribution);
             const values = Object.values(distribution);
@@ -407,7 +412,9 @@
             const res = await fetch('/api/analytics/metrics', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            const { metrics } = await res.json();
+            const json = await res.json();
+            const metrics = json.data.metrics;
+
 
             const labels = metrics.map(m => new Date(m.date).toLocaleDateString());
             const weights = metrics.map(m => m.weight);

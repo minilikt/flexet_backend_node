@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendResponse } = require('../utils/response.utils');
+
 
 const getExercises = async (req, res) => {
     try {
@@ -59,19 +61,15 @@ const getExercises = async (req, res) => {
             take: 50
         });
 
-        res.json({
-            success: true,
+        sendResponse(res, 200, 'Exercises fetched successfully', {
             count: exercises.length,
             exercises
         });
 
+
     } catch (error) {
         console.error('Error fetching exercises:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch exercises',
-            error: error.message
-        });
+        sendResponse(res, 500, 'Failed to fetch exercises', null, error.message);
     }
 };
 
@@ -83,8 +81,7 @@ const getFilterMetadata = async (req, res) => {
             prisma.category.findMany({ select: { name: true } })
         ]);
 
-        res.json({
-            success: true,
+        sendResponse(res, 200, 'Filter metadata fetched successfully', {
             metadata: {
                 muscles: muscles.map(m => m.name),
                 equipment: equipment.map(e => e.name),
@@ -92,12 +89,10 @@ const getFilterMetadata = async (req, res) => {
             }
         });
 
+
     } catch (error) {
         console.error('Error fetching filter metadata:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch filter metadata'
-        });
+        sendResponse(res, 500, 'Failed to fetch filter metadata', null, error.message);
     }
 };
 

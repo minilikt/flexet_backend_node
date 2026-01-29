@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { sendResponse } = require('./src/utils/response.utils');
+
 const helmet = require('helmet');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -45,12 +47,15 @@ app.use('/api/analytics', analyticsRoutes);
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err);
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-    });
+    sendResponse(
+        res,
+        err.status || 500,
+        err.message || 'Internal Server Error',
+        null,
+        process.env.NODE_ENV === 'development' ? err : {}
+    );
 });
+
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });

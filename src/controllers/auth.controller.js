@@ -2,18 +2,20 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt.utils');
+const { sendResponse } = require('../utils/response.utils');
+
 
 const register = async (req, res) => {
     try {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+            return sendResponse(res, 400, 'Email and password are required');
         }
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
+            return sendResponse(res, 400, 'User already exists');
         }
 
         const hashedPassword = await bcrypt.hash(password, 12);
@@ -24,9 +26,10 @@ const register = async (req, res) => {
             },
         });
 
-        res.status(201).json({ message: 'User created successfully', userId: user.id });
+        sendResponse(res, 201, 'User created successfully', { userId: user.id });
+
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        sendResponse(res, 500, 'Internal server error', null, error.message);
     }
 };
 
@@ -36,7 +39,7 @@ const login = async (req, res) => {
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return sendResponse(res, 401, 'Invalid credentials');
         }
 
         const accessToken = generateAccessToken(user);
@@ -59,31 +62,40 @@ const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        res.json({ accessToken, user: { id: user.id, email: user.email } });
+        const isMobile = req.headers['x-client-type'] === 'mobile';
+
+        sendResponse(res, 200, 'Login successful', {
+            accessToken,
+            refreshToken: isMobile ? refreshToken : undefined,
+            user: { id: user.id, email: user.email }
+        });
+
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        sendResponse(res, 500, 'Internal server error', null, error.message);
     }
 };
 
 const refresh = async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) return res.sendStatus(401);
+    if (!refreshToken) return sendResponse(res, 401, 'No refresh token provided');
 
     try {
         const savedToken = await prisma.refreshToken.findUnique({
+
             where: { token: refreshToken },
             include: { user: true }
         });
 
         if (!savedToken || savedToken.expiresAt < new Date()) {
             if (savedToken) await prisma.refreshToken.delete({ where: { id: savedToken.id } });
-            return res.sendStatus(403);
+            return sendResponse(res, 403, 'Invalid or expired refresh token');
         }
 
         const accessToken = generateAccessToken(savedToken.user);
-        res.json({ accessToken });
+        sendResponse(res, 200, 'Token refreshed', { accessToken });
+
     } catch (error) {
-        res.status(403).json({ message: 'Invalid refresh token' });
+        sendResponse(res, 403, 'Invalid refresh token', null, error.message);
     }
 };
 
@@ -93,7 +105,8 @@ const logout = async (req, res) => {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     }
     res.clearCookie('refreshToken');
-    res.json({ message: 'Logged out successfully' });
+    sendResponse(res, 200, 'Logged out successfully');
+
 };
 
 module.exports = { register, login, refresh, logout };

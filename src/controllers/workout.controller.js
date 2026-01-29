@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const WorkoutGenerator = require('../utils/workoutGenerator');
+const { sendResponse } = require('../utils/response.utils');
+
 
 const generateWorkout = async (req, res) => {
     try {
@@ -9,17 +11,17 @@ const generateWorkout = async (req, res) => {
 
         // --- VALIDATION ---
         if (!specs.goal) {
-            return res.status(400).json({ success: false, message: 'Goal is required' });
+            return sendResponse(res, 400, 'Goal is required');
         }
 
         const daysPerWeek = parseInt(specs.days_per_week);
         if (isNaN(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
-            return res.status(400).json({ success: false, message: 'Invalid days_per_week. Must be 1-7.' });
+            return sendResponse(res, 400, 'Invalid days_per_week. Must be 1-7.');
         }
 
         const weeks = parseInt(specs.weeks) || 4;
         if (weeks < 1 || weeks > 12) {
-            return res.status(400).json({ success: false, message: 'Invalid weeks. Must be 1-12.' });
+            return sendResponse(res, 400, 'Invalid weeks. Must be 1-12.');
         }
 
         // Fetch user profile to get workoutDays if not provided in specs
@@ -144,17 +146,11 @@ const generateWorkout = async (req, res) => {
             });
         }
 
-        res.status(200).json({
-            success: true,
-            plan: savedPlan
-        });
+        sendResponse(res, 200, 'Workout plan generated successfully', { plan: savedPlan });
+
     } catch (error) {
         console.error('Error generating workout:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to generate workout plan',
-            error: error.message
-        });
+        sendResponse(res, 500, 'Failed to generate workout plan', null, error.message);
     }
 };
 
@@ -177,9 +173,10 @@ const getUserPlans = async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
 
-        res.json({ success: true, plans });
+        sendResponse(res, 200, 'User plans fetched successfully', { plans });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch plans', error: error.message });
+        sendResponse(res, 500, 'Failed to fetch plans', null, error.message);
     }
 };
 
@@ -224,8 +221,7 @@ const getPerformanceTrends = async (req, res) => {
             include: { muscle: true }
         });
 
-        res.json({
-            success: true,
+        sendResponse(res, 200, 'Trends fetched successfully', {
             trends,
             fatigue: fatigue.map(f => ({
                 muscle: f.muscle.name,
@@ -233,8 +229,9 @@ const getPerformanceTrends = async (req, res) => {
                 lastUpdated: f.lastUpdated
             }))
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch trends', error: error.message });
+        sendResponse(res, 500, 'Failed to fetch trends', null, error.message);
     }
 };
 

@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const WorkoutGenerator = require('../utils/workoutGenerator');
 const prisma = new PrismaClient();
+const { sendResponse } = require('../utils/response.utils');
+
 
 const logSession = async (req, res) => {
     try {
@@ -22,9 +24,10 @@ const logSession = async (req, res) => {
             });
         }
 
-        res.json({ success: true, log });
+        sendResponse(res, 200, 'Session logged successfully', { log });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to log session', error: error.message });
+        sendResponse(res, 500, 'Failed to log session', null, error.message);
     }
 };
 
@@ -49,9 +52,10 @@ const logPerformance = async (req, res) => {
             data: { isCompleted: true }
         });
 
-        res.json({ success: true, logs });
+        sendResponse(res, 200, 'Performance logged successfully', { logs });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to log performance', error: error.message });
+        sendResponse(res, 500, 'Failed to log performance', null, error.message);
     }
 };
 
@@ -72,9 +76,10 @@ const submitFeedback = async (req, res) => {
             create: { userId, exerciseId, preference: normPreference, perceivedDifficulty: parseInt(difficulty), notes }
         });
 
-        res.json({ success: true, feedback });
+        sendResponse(res, 200, 'Feedback submitted successfully', { feedback });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to submit feedback', error: error.message });
+        sendResponse(res, 500, 'Failed to submit feedback', null, error.message);
     }
 };
 
@@ -103,9 +108,10 @@ const logRecovery = async (req, res) => {
             }
         }
 
-        res.json({ success: true, daily });
+        sendResponse(res, 200, 'Recovery logged successfully', { daily });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to log recovery', error: error.message });
+        sendResponse(res, 500, 'Failed to log recovery', null, error.message);
     }
 };
 
@@ -222,10 +228,11 @@ const submitSessionResult = async (req, res) => {
             console.error("Reactive sync failed (non-fatal):", syncError);
         }
 
-        res.json({ success: true, message: "Session processed and future plan adapted.", result });
+        sendResponse(res, 200, "Session processed and future plan adapted.", { result });
+
     } catch (error) {
         console.error("Bulk session processing failed:", error);
-        res.status(500).json({ success: false, message: 'Failed to process session data', error: error.message });
+        sendResponse(res, 500, 'Failed to process session data', null, error.message);
     }
 };
 
