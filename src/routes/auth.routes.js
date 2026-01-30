@@ -8,9 +8,11 @@ router.post('/login', login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 
+const { sendResponse } = require('../utils/response.utils');
+
 // Example protected route
 router.get('/me', protect, (req, res) => {
-    res.json(req.user);
+    sendResponse(res, 200, 'User profile fetched', req.user);
 });
 
 module.exports = router;

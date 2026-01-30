@@ -26,7 +26,32 @@ const register = async (req, res) => {
             },
         });
 
-        sendResponse(res, 201, 'User created successfully', { userId: user.id });
+        // Generate tokens upon registration
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        // Save refresh token to DB
+        await prisma.refreshToken.create({
+            data: {
+                token: refreshToken,
+                userId: user.id,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
+        });
+
+        // Set refresh token in HttpOnly cookie
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        sendResponse(res, 201, 'User created successfully', {
+            accessToken,
+            refreshToken, // Return for storage fallback
+            user: { id: user.id, email: user.email }
+        });
 
     } catch (error) {
         sendResponse(res, 500, 'Internal server error', null, error.message);
@@ -62,11 +87,9 @@ const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        const isMobile = req.headers['x-client-type'] === 'mobile';
-
         sendResponse(res, 200, 'Login successful', {
             accessToken,
-            refreshToken: isMobile ? refreshToken : undefined,
+            refreshToken, // Always return for storage fallback
             user: { id: user.id, email: user.email }
         });
 
@@ -76,12 +99,12 @@ const login = async (req, res) => {
 };
 
 const refresh = async (req, res) => {
-    const refreshToken = req.cookies.refreshToken;
+    // Check cookie first, fallback to body
+    const refreshToken = req.cookies.refreshToken || req.body.token;
     if (!refreshToken) return sendResponse(res, 401, 'No refresh token provided');
 
     try {
         const savedToken = await prisma.refreshToken.findUnique({
-
             where: { token: refreshToken },
             include: { user: true }
         });
@@ -100,7 +123,7 @@ const refresh = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken || req.body.token;
     if (refreshToken) {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     }

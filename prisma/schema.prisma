@@ -51,10 +51,12 @@ model User {
   bodyMetrics   BodyMetric[]
   
   // Profile Fields
+  name          String?  // Preferred name
   gender        String?
   age           Int?
   height        Float?   // cm
   weight        Float?   // kg
+  goalWeight    Float?   // kg
   goal          WorkoutGoal?
   trainingLevel TrainingLevel?
   activityLevel String?  

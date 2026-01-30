@@ -1,16 +1,41 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { startOfDay, endOfDay, subDays, eachDayOfInterval, format } = require('date-fns');
+const { startOfDay, endOfDay, subDays, eachDayOfInterval, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isSameDay } = require('date-fns');
 const { sendResponse } = require('../utils/response.utils');
+
+const getTimeRange = (filter) => {
+    const now = new Date();
+    switch (filter) {
+        case '3 Days':
+            return { gte: subDays(now, 3), lte: now };
+        case 'Week':
+        case '1 Week':
+            return { gte: startOfWeek(now, { weekStartsOn: 1 }), lte: endOfWeek(now, { weekStartsOn: 1 }) };
+        case 'Month':
+        case '1 Month':
+            return { gte: startOfMonth(now), lte: endOfMonth(now) };
+        case '3 Months':
+            return { gte: subMonths(now, 3), lte: now };
+        case '6 Months':
+            return { gte: subMonths(now, 6), lte: now };
+        case 'Year':
+        case '1 Year':
+            return { gte: startOfYear(now), lte: endOfYear(now) };
+        default:
+            return { gte: new Date(0) }; // All time
+    }
+};
 
 
 const getDashboardSummary = async (req, res) => {
     try {
         const userId = req.user.userId;
+        const { filter = 'Week' } = req.query;
+        const timeRange = getTimeRange(filter);
 
-        // 1. Calculate Streak (Limited to last 60 days for performance)
+        // 1. Calculate Streak (Always 60 days)
         const sixtyDaysAgo = subDays(new Date(), 60);
-        const sessions = await prisma.workoutSession.findMany({
+        const streakSessions = await prisma.workoutSession.findMany({
             where: {
                 plan: { userId },
                 isCompleted: true,
@@ -21,8 +46,8 @@ const getDashboardSummary = async (req, res) => {
         });
 
         let currentStreak = 0;
-        if (sessions.length > 0) {
-            const sessionDates = [...new Set(sessions.map(s => format(s.completedAt, 'yyyy-MM-dd')))];
+        if (streakSessions.length > 0) {
+            const sessionDates = [...new Set(streakSessions.map(s => format(s.completedAt, 'yyyy-MM-dd')))];
             const today = format(new Date(), 'yyyy-MM-dd');
             const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
@@ -41,7 +66,7 @@ const getDashboardSummary = async (req, res) => {
             }
         }
 
-        // 2. Goal Progress
+        // 2. Goal Progress (Active Plan)
         const activePlan = await prisma.workoutPlan.findFirst({
             where: { userId, status: 'ACTIVE' },
             select: {
@@ -68,35 +93,50 @@ const getDashboardSummary = async (req, res) => {
             });
         }
 
-        // 3. Weekly Volume (Last 7 Days)
-        const sevenDaysAgo = subDays(new Date(), 7);
-        const volumeLogs = await prisma.exercisePerformanceLog.findMany({
+        // 3. Filtered Metrics (Volume, Calories, Duration)
+        const sessions = await prisma.workoutSession.findMany({
             where: {
-                workoutExercise: {
-                    session: {
-                        plan: { userId },
-                        completedAt: { gte: sevenDaysAgo }
-                    }
-                }
+                plan: { userId },
+                isCompleted: true,
+                completedAt: timeRange
             },
-            select: {
-                weight: true,
-                actualReps: true
+            include: {
+                exercises: {
+                    include: {
+                        performanceLogs: true
+                    }
+                },
+                sessionLog: true
             }
         });
 
-        const weeklyTonnage = volumeLogs.reduce((acc, log) => acc + ((log.weight || 0) * (log.actualReps || 0)), 0);
+        let totalTonnage = 0;
+        let totalDuration = 0;
+        let totalWorkouts = sessions.length;
+
+        sessions.forEach(session => {
+            totalDuration += (session.sessionLog?.durationMinutes || 0);
+            session.exercises.forEach(exercise => {
+                exercise.performanceLogs.forEach(log => {
+                    totalTonnage += (log.weight || 0) * (log.actualReps || 0);
+                });
+            });
+        });
+
+        // Simple calorie calculation: 6 calories per minute
+        const caloriesBurned = totalDuration * 6;
 
         sendResponse(res, 200, 'Dashboard summary fetched successfully', {
             summary: {
                 currentStreak,
                 progressPercent,
-                weeklyTonnage,
-                remainingCount
+                totalTonnage,
+                remainingCount,
+                caloriesBurned,
+                totalDuration,
+                totalWorkouts
             }
         });
-
-
     } catch (error) {
         console.error('Error fetching dashboard summary:', error);
         sendResponse(res, 500, 'Failed to fetch dashboard summary', null, error.message);
@@ -106,13 +146,16 @@ const getDashboardSummary = async (req, res) => {
 const getMuscleDistribution = async (req, res) => {
     try {
         const userId = req.user.userId;
+        const { filter = 'All' } = req.query;
+        const timeRange = getTimeRange(filter);
 
         // Fetch logs with selective fields to reduce memory overhead
         const logs = await prisma.exercisePerformanceLog.findMany({
             where: {
                 workoutExercise: {
                     session: {
-                        plan: { userId }
+                        plan: { userId },
+                        completedAt: timeRange
                     }
                 }
             },
@@ -211,9 +254,76 @@ const logBodyMetric = async (req, res) => {
     }
 };
 
+const getTrends = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { metric = 'Calories', filter = 'Week' } = req.query;
+        const timeRange = getTimeRange(filter);
+
+        let labels = [];
+        let data = [];
+
+        if (metric === 'Weight') {
+            const metrics = await prisma.bodyMetric.findMany({
+                where: { userId, date: timeRange },
+                orderBy: { date: 'asc' },
+                select: { date: true, weight: true }
+            });
+            labels = metrics.map(m => format(m.date, filter === 'Year' ? 'MMM' : 'dd/MM'));
+            data = metrics.map(m => m.weight || 0);
+        } else {
+            const sessions = await prisma.workoutSession.findMany({
+                where: {
+                    plan: { userId },
+                    isCompleted: true,
+                    completedAt: timeRange
+                },
+                include: { sessionLog: true },
+                orderBy: { completedAt: 'asc' }
+            });
+
+            if (filter === 'Week') {
+                const days = eachDayOfInterval({ start: timeRange.gte, end: timeRange.lte });
+                labels = days.map(d => format(d, 'EEE'));
+                data = days.map(day => {
+                    const daySessions = sessions.filter(s => isSameDay(s.completedAt, day));
+                    if (metric === 'Calories') {
+                        return daySessions.reduce((acc, s) => acc + (s.sessionLog?.durationMinutes || 0) * 6, 0);
+                    } else {
+                        return daySessions.reduce((acc, s) => acc + (s.sessionLog?.durationMinutes || 0), 0);
+                    }
+                });
+            } else {
+                labels = sessions.map(s => format(s.completedAt, filter === 'Year' ? 'MMM' : 'dd/MM'));
+                if (metric === 'Calories') {
+                    data = sessions.map(s => (s.sessionLog?.durationMinutes || 0) * 6);
+                } else {
+                    data = sessions.map(s => (s.sessionLog?.durationMinutes || 0));
+                }
+            }
+        }
+
+        // Ensure we don't return empty data for chart consistency
+        if (data.length === 0) {
+            labels = ['No Data'];
+            data = [0];
+        }
+
+        sendResponse(res, 200, 'Trends fetched successfully', {
+            labels,
+            datasets: [{ data }]
+        });
+
+    } catch (error) {
+        console.error('Error fetching trends:', error);
+        sendResponse(res, 500, 'Failed to fetch trends', null, error.message);
+    }
+};
+
 module.exports = {
     getDashboardSummary,
     getMuscleDistribution,
     getBodyMetrics,
-    logBodyMetric
+    logBodyMetric,
+    getTrends
 };

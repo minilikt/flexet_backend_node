@@ -7,10 +7,12 @@ const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
         const {
+            name,
             age,
             gender,
             height,
             weight,
+            goalWeight,
             goal,
             trainingLevel,
             activityLevel,
@@ -32,10 +34,12 @@ const updateProfile = async (req, res) => {
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
+                name,
                 age: age ? parseInt(age) : undefined,
                 gender,
                 height: height ? parseFloat(height) : undefined,
                 weight: weight ? parseFloat(weight) : undefined,
+                goalWeight: goalWeight ? parseFloat(goalWeight) : undefined,
                 goal: finalGoal,
                 trainingLevel: finalLevel,
                 activityLevel,
