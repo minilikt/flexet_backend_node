@@ -66,7 +66,8 @@ async function main() {
                 categoryId: category?.id,
                 splitId: split?.id,
                 movementPatternId: pattern?.id,
-                gifUrl: ex.logic_assets.gif_url || null,
+                gifUrl: ex.gifUrl || null,
+                instructions: ex.instructions || [],
             },
         });
 

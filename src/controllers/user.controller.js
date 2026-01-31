@@ -19,7 +19,8 @@ const updateProfile = async (req, res) => {
             equipment,
             workoutDays,
             sleepHours,
-            waterIntake
+            waterIntake,
+            profileImage
         } = req.body;
         console.log('Incoming Goal:', goal);
         const validGoals = ['STRENGTH', 'HYPERTROPHY', 'ENDURANCE', 'MAINTENANCE', 'WEIGHT_LOSS'];
@@ -47,6 +48,7 @@ const updateProfile = async (req, res) => {
                 workoutDays,
                 sleepHours: sleepHours ? parseFloat(sleepHours) : undefined,
                 waterIntake: waterIntake ? parseFloat(waterIntake) : undefined,
+                profileImage
             }
         });
 

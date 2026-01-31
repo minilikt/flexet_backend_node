@@ -59,7 +59,9 @@ model User {
   goalWeight    Float?   // kg
   goal          WorkoutGoal?
   trainingLevel TrainingLevel?
-  activityLevel String?  
+
+  activityLevel String?
+  profileImage  String?
   
   // Preferences & Lifestyle
   equipment     String[] 
@@ -99,6 +101,7 @@ model Exercise {
   updatedAt                                                           DateTime                @updatedAt
   externalId                                                          String?                 @unique
   gifUrl                                                              String?
+  instructions                                                        String[]
   category                                                            Category?               @relation(fields: [categoryId], references: [id])
   movementPattern                                                     MovementPattern?        @relation(fields: [movementPatternId], references: [id])
   split                                                               Split?                  @relation(fields: [splitId], references: [id])
