@@ -235,8 +235,63 @@ const getPerformanceTrends = async (req, res) => {
     }
 };
 
+const getActiveSession = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        console.log(`[DEBUG] getActiveSession for userId: ${userId}`);
+
+        // Find the active plan
+        console.log(`[DEBUG] Querying active plan for userId: ${userId}`);
+        const activePlan = await prisma.workoutPlan.findFirst({
+            where: { userId, status: 'ACTIVE' }
+        });
+
+        if (!activePlan) {
+            console.log(`[DEBUG] No ACTIVE plan found for userId: ${userId}. Check if status is uppercase or if user has a plan.`);
+            return sendResponse(res, 200, 'No active workout plan found', { session: null });
+        }
+
+        console.log(`[DEBUG] Found active plan: ${activePlan.id}. Querying first incomplete session...`);
+
+        // Find the first non-completed session
+        const activeSession = await prisma.workoutSession.findFirst({
+            where: {
+                planId: activePlan.id,
+                isCompleted: false
+            },
+            include: {
+                exercises: {
+                    include: {
+                        exercise: true
+                    },
+                    orderBy: {
+                        order: 'asc'
+                    }
+                }
+            },
+            orderBy: [
+                { weekNumber: 'asc' },
+                { dayNumber: 'asc' }
+            ]
+        });
+
+        if (!activeSession) {
+            console.log(`[DEBUG] No incomplete session found for planId: ${activePlan.id}. Perhaps the plan is finished?`);
+            return sendResponse(res, 200, 'No active workout session found for this plan', { session: null });
+        }
+
+        console.log(`[DEBUG] Found active session: ${activeSession.id} with ${activeSession.exercises.length} exercises. Day Label: ${activeSession.dayLabel}`);
+        sendResponse(res, 200, 'Active session fetched successfully', { session: activeSession });
+
+    } catch (error) {
+        console.error('Error fetching active session:', error);
+        sendResponse(res, 500, 'Failed to fetch active session', null, error.message);
+    }
+};
+
 module.exports = {
     generateWorkout,
     getUserPlans,
-    getPerformanceTrends
+    getPerformanceTrends,
+    getActiveSession
 };

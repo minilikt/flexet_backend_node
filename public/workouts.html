@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Workout Plans - Flex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ff88;
+            --primary-dim: rgba(0, 255, 136, 0.1);
+            --bg: #0a0a0a;
+            --card-bg: #141414;
+            --card-border: #222;
+            --text: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn:hover,
+        .toggle-btn.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-dim);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 4rem;
+        }
+
+        /* Cards Layout */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .plan-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: #333;
+        }
+
+        .plan-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent);
+        }
+
+        .plan-title {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .plan-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tag {
+            background: #222;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .plan-body {
+            padding: 1.5rem;
+        }
+
+        .session-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .session-item {
+            padding: 1rem;
+            border-bottom: 1px solid #222;
+        }
+
+        .session-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .session-details {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* JSON View */
+        .json-view {
+            background: #0d0d0d;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #333;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            color: #d4d4d4;
+            overflow-x: auto;
+            display: none;
+        }
+
+        .key {
+            color: #9cdcfe;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        .boolean {
+            color: #569cd6;
+        }
+
+        .null {
+            color: #569cd6;
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Workout Plans</h1>
+                <a href="/dashboard.html" class="nav-link">← Back to Dashboard</a>
+            </div>
+            <div>
+                <button id="visualBtn" class="toggle-btn active" onclick="setView('visual')">Visual</button>
+                <button id="jsonBtn" class="toggle-btn" onclick="setView('json')">Raw JSON</button>
+            </div>
+        </header>
+
+        <div id="contentArea">
+            <div class="loading">Loading your workout plans...</div>
+        </div>
+    </div>
+
+    <script>
+        let plansData = null;
+
+        async function fetchPlans() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/workout/my-plans', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    plansData = result.data.plans;
+                    renderVisual(plansData);
+                } else {
+                    showError(result.message || 'Failed to load plans');
+                }
+            } catch (error) {
+                showError('Error connecting to server');
+                console.error(error);
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('contentArea').innerHTML = `<div class="error-message">${msg}</div>`;
+        }
+
+        function setView(view) {
+            if (!plansData) return;
+
+            document.getElementById('visualBtn').classList.toggle('active', view === 'visual');
+            document.getElementById('jsonBtn').classList.toggle('active', view === 'json');
+
+            if (view === 'visual') {
+                renderVisual(plansData);
+            } else {
+                renderJson(plansData);
+            }
+        }
+
+        function renderVisual(plans) {
+            const container = document.getElementById('contentArea');
+
+            if (plans.length === 0) {
+                container.innerHTML = '<div class="loading">No workout plans found. Generate one in the dashboard!</div>';
+                return;
+            }
+
+            let html = '<div class="plans-grid">';
+
+            plans.forEach(plan => {
+                const createdDate = new Date(plan.createdAt).toLocaleDateString();
+
+                html += `
+                <div class="plan-card">
+                    <div class="plan-header">
+                        <h2 class="plan-title">${plan.goal || 'Custom Plan'}</h2>
+                        <div class="plan-meta">
+                            <span class="tag">${plan.frequency || 'N/A times'}/week</span>
+                            <span class="tag">${createdDate}</span>
+                        </div>
+                    </div>
+                    <div class="plan-body">
+                        <h3 style="font-size:0.9rem; color:var(--text-secondary); margin-top:0;">Sessions</h3>
+                        <ul class="session-list">
+                            ${plan.sessions.map(session => `
+                                <li class="session-item">
+                                    <div class="session-header">
+                                        <span style="color:var(--primary)">${session.focus}</span>
+                                        <span style="color:var(--text-secondary)">W${session.weekNumber}-D${session.dayNumber}</span>
+                                    </div>
+                                    <div class="session-details">
+                                        ${session.exercises.length} exercises • 
+                                        ${session.isCompleted ? '<span style="color:var(--primary)">Completed</span>' : 'Pending'}
+                                    </div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderJson(data) {
+            const container = document.getElementById('contentArea');
+            const jsonStr = JSON.stringify(data, null, 2);
+            // Basic syntax highlighting
+            const highlighted = jsonStr.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+
+            container.innerHTML = `<div class="json-view" style="display:block">${highlighted}</div>`;
+        }
+
+        // Init
+        fetchPlans();
+    </script>
+
+</body>
+
+</html>

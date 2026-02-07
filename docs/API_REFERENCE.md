@@ -115,12 +115,19 @@ Triggers the **Workout Generator** to create a new multi-week adaptive plan.
   ```
 - **Response (201)**: Returns the created `WorkoutPlan` object with nested sessions.
 
-### Get Active Plan
-**GET** `/workout/current`
+### Get Active Session
+**GET** `/workout/session`
 
-Fetches the user's currently active plan with full nested details.
+Fetches the user's currently active session with full nested details.
 
-- **Response (200)**: Full plan object or `404` if none active.
+- **Response (200)**: Full session object or `404` if none active.
+
+### Get My Plans
+**GET** `/workout/plans`
+
+Retrieves all workout plans for the user.
+
+- **Response (200)**: List of plan objects.
 
 ---
 

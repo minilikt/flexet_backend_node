@@ -39,19 +39,33 @@ async function main() {
     await prisma.muscle.createMany({ data: Array.from(muscles).map(name => ({ name })), skipDuplicates: true });
     await prisma.tag.createMany({ data: Array.from(tags).map(name => ({ name })), skipDuplicates: true });
 
+    console.log('Fetching existing metadata for lookups...');
+    const dbCategories = await prisma.category.findMany();
+    const dbSplits = await prisma.split.findMany();
+    const dbPatterns = await prisma.movementPattern.findMany();
+    const dbEquipments = await prisma.equipment.findMany();
+    const dbMuscles = await prisma.muscle.findMany();
+    const dbTags = await prisma.tag.findMany();
+
+    const categoryMap = new Map(dbCategories.map(c => [c.name, c.id]));
+    const splitMap = new Map(dbSplits.map(s => [s.name, s.id]));
+    const patternMap = new Map(dbPatterns.map(p => [p.name, p.id]));
+    const equipmentMap = new Map(dbEquipments.map(e => [e.name, e.id]));
+    const muscleMap = new Map(dbMuscles.map(m => [m.name, m.id]));
+    const tagMap = new Map(dbTags.map(t => [t.name, t.id]));
+
     console.log('Seeding Exercises...');
     let count = 0;
     for (const ex of exercisesData) {
         count++;
-        if (count % 20 === 0) console.log(`Processed ${count}/${exercisesData.length} exercises...`);
-
-        const category = await prisma.category.findUnique({ where: { name: ex.classification.category } });
-        const split = await prisma.split.findUnique({ where: { name: ex.classification.split } });
-        const pattern = await prisma.movementPattern.findUnique({ where: { name: ex.classification.movement_pattern } });
+        if (count % 50 === 0) console.log(`Processed ${count}/${exercisesData.length} exercises...`);
 
         const createdEx = await prisma.exercise.upsert({
             where: { externalId: ex.id },
-            update: {},
+            update: {
+                gifUrl: ex.gifUrl || null,
+                instructions: ex.instructions || [],
+            },
             create: {
                 externalId: ex.id,
                 name: ex.name,
@@ -63,29 +77,26 @@ async function main() {
                 defaultSets: ex.programming.default_sets,
                 defaultReps: String(ex.programming.default_reps),
                 loadFormula: ex.programming.load_formula,
-                categoryId: category?.id,
-                splitId: split?.id,
-                movementPatternId: pattern?.id,
+                categoryId: categoryMap.get(ex.classification.category),
+                splitId: splitMap.get(ex.classification.split),
+                movementPatternId: patternMap.get(ex.classification.movement_pattern),
                 gifUrl: ex.gifUrl || null,
                 instructions: ex.instructions || [],
             },
         });
 
-        // 1. Equipment Junction
+        // Batch junctions using createMany with skipDuplicates (if supported) or sequential upserts
+        // Note: Prisma 5+ supports createMany for many-to-many via direct table access
+
         if (ex.requirements.equipment) {
-            for (const eqName of ex.requirements.equipment) {
-                const eq = await prisma.equipment.findUnique({ where: { name: eqName } });
-                if (eq) {
-                    await prisma.exerciseEquipment.upsert({
-                        where: { exerciseId_equipmentId: { exerciseId: createdEx.id, equipmentId: eq.id } },
-                        update: {},
-                        create: { exerciseId: createdEx.id, equipmentId: eq.id }
-                    });
-                }
-            }
+            await prisma.exerciseEquipment.createMany({
+                data: ex.requirements.equipment
+                    .map(eqName => ({ exerciseId: createdEx.id, equipmentId: equipmentMap.get(eqName) }))
+                    .filter(item => item.equipmentId),
+                skipDuplicates: true
+            });
         }
 
-        // 2. Muscle Junction
         const muscleRoles = [
             { list: ex.anatomy.primary, role: 'PRIMARY' },
             { list: ex.anatomy.secondary, role: 'SECONDARY' },
@@ -94,50 +105,47 @@ async function main() {
 
         for (const { list, role } of muscleRoles) {
             if (list) {
-                for (const mName of list) {
-                    const m = await prisma.muscle.findUnique({ where: { name: mName } });
-                    if (m) {
-                        await prisma.exerciseMuscle.upsert({
-                            where: { exerciseId_muscleId_role: { exerciseId: createdEx.id, muscleId: m.id, role } },
-                            update: {},
-                            create: { exerciseId: createdEx.id, muscleId: m.id, role }
-                        });
-                    }
-                }
+                await prisma.exerciseMuscle.createMany({
+                    data: list
+                        .map(mName => ({ exerciseId: createdEx.id, muscleId: muscleMap.get(mName), role }))
+                        .filter(item => item.muscleId),
+                    skipDuplicates: true
+                });
             }
         }
 
-        // 3. Tag Junction
         if (ex.logic_assets.tags) {
-            for (const tagName of ex.logic_assets.tags) {
-                const t = await prisma.tag.findUnique({ where: { name: tagName } });
-                if (t) {
-                    await prisma.exerciseTag.upsert({
-                        where: { exerciseId_tagId: { exerciseId: createdEx.id, tagId: t.id } },
-                        update: {},
-                        create: { exerciseId: createdEx.id, tagId: t.id }
-                    });
-                }
-            }
+            await prisma.exerciseTag.createMany({
+                data: ex.logic_assets.tags
+                    .map(tagName => ({ exerciseId: createdEx.id, tagId: tagMap.get(tagName) }))
+                    .filter(item => item.tagId),
+                skipDuplicates: true
+            });
         }
     }
 
-    console.log('Linking Alternatives...');
-    for (const ex of exercisesData) {
-        if (ex.logic_assets.alternatives && ex.logic_assets.alternatives.length > 0) {
-            const currentEx = await prisma.exercise.findUnique({ where: { externalId: ex.id } });
+    console.log('Linking Alternatives (in-memory pass)...');
+    const existingExercises = await prisma.exercise.findMany({ select: { id: true, externalId: true } });
+    const extIdToId = new Map(existingExercises.map(e => [e.externalId, e.id]));
 
-            for (const altExtId of ex.logic_assets.alternatives) {
-                const altEx = await prisma.exercise.findUnique({ where: { externalId: String(altExtId) } });
-                if (currentEx && altEx) {
-                    await prisma.exerciseToAlternative.upsert({
-                        where: { exerciseId_alternativeId: { exerciseId: currentEx.id, alternativeId: altEx.id } },
-                        update: {},
-                        create: { exerciseId: currentEx.id, alternativeId: altEx.id }
-                    });
+    const altPairs = [];
+    for (const ex of exercisesData) {
+        if (ex.logic_assets.alternatives) {
+            const currentExId = extIdToId.get(ex.id);
+            ex.logic_assets.alternatives.forEach(altExtId => {
+                const altId = extIdToId.get(String(altExtId));
+                if (currentExId && altId) {
+                    altPairs.push({ exerciseId: currentExId, alternativeId: altId });
                 }
-            }
+            });
         }
+    }
+
+    if (altPairs.length > 0) {
+        await prisma.exerciseToAlternative.createMany({
+            data: altPairs,
+            skipDuplicates: true
+        });
     }
 
     console.log('Migration completed successfully!');

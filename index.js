@@ -56,6 +56,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Enhanced request logger
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+    });
+    next();
+});
+
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -95,7 +105,8 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

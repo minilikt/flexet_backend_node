@@ -1,0 +1,1126 @@
+{
+  "completedSessions": [
+    {
+      "id": "aca4caed-ad44-4c41-9294-92095b712100",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 2,
+      "dayNumber": 1,
+      "dayLabel": "Monday",
+      "focus": "Push",
+      "isCompleted": true,
+      "completedAt": "2026-02-04T17:09:59.586Z",
+      "sessionLog": {
+        "id": "f262ef87-b6e5-45f3-9320-cd59a4fb4405",
+        "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+        "durationMinutes": 1,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app. Active duration: 1m",
+        "createdAt": "2026-02-04T17:09:59.589Z"
+      },
+      "exercises": [
+        {
+          "id": "ee26732e-2921-4726-a277-4e88eab8479c",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "be24d29d-4387-4819-811a-5034079b05b0",
+          "sets": 4,
+          "reps": "3-5",
+          "weight": 1.25,
+          "restMin": null,
+          "restMax": null,
+          "order": 2,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Barbell Incline Bench Press"
+          },
+          "performanceLogs": [
+            {
+              "id": "7e3a2580-c981-4869-8da6-a28bf9de07ae",
+              "workoutExerciseId": "ee26732e-2921-4726-a277-4e88eab8479c",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "d3296969-047a-4b7e-8999-e847402dabd7",
+              "workoutExerciseId": "ee26732e-2921-4726-a277-4e88eab8479c",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "fd95ea86-4621-4a37-8a49-17357ce4e0c6",
+              "workoutExerciseId": "ee26732e-2921-4726-a277-4e88eab8479c",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "4e7af1ea-9171-400a-8661-2e9f39358648",
+              "workoutExerciseId": "ee26732e-2921-4726-a277-4e88eab8479c",
+              "setNumber": 4,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            }
+          ]
+        },
+        {
+          "id": "6a6ac06a-180f-4b03-ac58-84f105fbec8c",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "b536b203-ed63-4cb9-ad5c-522bfa80896d",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell One Arm Decline Chest Press"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "48e13e84-304b-4a4b-8471-b47f631fbaec",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "9e19ef87-98e8-4145-97fd-5e167e027c0e",
+          "sets": 3,
+          "reps": "10-15",
+          "weight": 1.25,
+          "restMin": null,
+          "restMax": null,
+          "order": 3,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Lying Triceps Extension"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "a576a92e-00d9-4814-b291-e0e7a51d91e4",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "c1526721-b035-4af9-add2-72cee5b7928a",
+          "sets": 3,
+          "reps": "10-16",
+          "weight": 1.25,
+          "restMin": null,
+          "restMax": null,
+          "order": 5,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Push-up Inside Leg Kick"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "77a2607e-8686-484d-b367-b7927323d4bf",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "c2e57c75-b52b-445a-b327-c904253bea6f",
+          "sets": 5,
+          "reps": "Max Hold",
+          "weight": 0,
+          "restMin": 3,
+          "restMax": 5,
+          "order": 0,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Full Planche"
+          },
+          "performanceLogs": [
+            {
+              "id": "14b13e2a-14ed-4c27-9d8f-4cedbe971ddc",
+              "workoutExerciseId": "77a2607e-8686-484d-b367-b7927323d4bf",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "f5b08fb4-6626-4f56-a3bc-25a33042764d",
+              "workoutExerciseId": "77a2607e-8686-484d-b367-b7927323d4bf",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "d1f0a8af-8623-4750-906e-f0c033899aca",
+              "workoutExerciseId": "77a2607e-8686-484d-b367-b7927323d4bf",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "9b5a5006-8e04-442b-8d97-ca02866a3d0d",
+              "workoutExerciseId": "77a2607e-8686-484d-b367-b7927323d4bf",
+              "setNumber": 4,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "f1c6bb71-2c80-43f3-a727-53cfe788a5ea",
+              "workoutExerciseId": "77a2607e-8686-484d-b367-b7927323d4bf",
+              "setNumber": 5,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            }
+          ]
+        },
+        {
+          "id": "b63594f9-8da0-4813-bef8-dde0b418d3a5",
+          "sessionId": "aca4caed-ad44-4c41-9294-92095b712100",
+          "exerciseId": "f55fca7c-fe78-4b1d-8a75-cba56351a0a7",
+          "sets": 3,
+          "reps": "30-60 Seconds",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 1,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Handstand"
+          },
+          "performanceLogs": [
+            {
+              "id": "c8165163-6a8a-4845-9a7c-9b4acfe9dec2",
+              "workoutExerciseId": "b63594f9-8da0-4813-bef8-dde0b418d3a5",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "224d8ed5-3829-4a3d-ad7d-59853bde1c6c",
+              "workoutExerciseId": "b63594f9-8da0-4813-bef8-dde0b418d3a5",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            },
+            {
+              "id": "ffb7584a-b3c4-4516-a258-3a11a96ddb29",
+              "workoutExerciseId": "b63594f9-8da0-4813-bef8-dde0b418d3a5",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-04T17:10:03.858Z"
+            }
+          ]
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    },
+    {
+      "id": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 1,
+      "dayNumber": 5,
+      "dayLabel": "Friday",
+      "focus": "Legs",
+      "isCompleted": true,
+      "completedAt": "2026-02-03T15:27:36.531Z",
+      "sessionLog": {
+        "id": "01b7473c-add1-43a4-a5c9-59665280e2cb",
+        "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+        "durationMinutes": 1,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app. Active duration: 1m",
+        "createdAt": "2026-02-03T15:27:36.532Z"
+      },
+      "exercises": [
+        {
+          "id": "ea4b469d-5e38-48f8-aaf2-7342d2b37bf9",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "2d8ccd04-ad34-4bfe-b3bd-8dc1fa3643a0",
+          "sets": 3,
+          "reps": "15-20",
+          "weight": 1.25,
+          "restMin": null,
+          "restMax": null,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Standing Rocking Leg Calf Raise"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "e9556625-4a05-488e-9245-c12f9d663c90",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "911ceb17-8e65-4d0e-b671-d13f8059931f",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 1.25,
+          "restMin": null,
+          "restMax": null,
+          "order": 5,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Lunge"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "0095746f-b8e2-40fa-b40f-e2a782e76b87",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "72181f0d-d018-44b8-ad0c-b7af229a994c",
+          "sets": 3,
+          "reps": "6-10",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 0,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Dumbbell Single Leg Squat"
+          },
+          "performanceLogs": [
+            {
+              "id": "8ef06f54-759d-493c-9d43-c98c69a2e811",
+              "workoutExerciseId": "0095746f-b8e2-40fa-b40f-e2a782e76b87",
+              "setNumber": 1,
+              "weight": 2,
+              "actualReps": 1,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "a4911336-9bca-4287-83ca-6c275d9b685c",
+              "workoutExerciseId": "0095746f-b8e2-40fa-b40f-e2a782e76b87",
+              "setNumber": 2,
+              "weight": 2,
+              "actualReps": 2,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "5210a8c4-d258-4ff7-938a-61ca4f78edb9",
+              "workoutExerciseId": "0095746f-b8e2-40fa-b40f-e2a782e76b87",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 6,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            }
+          ]
+        },
+        {
+          "id": "2a40b8e8-e094-4993-8caa-69ee6910f018",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "88bf349c-fd49-4d8f-9610-6a97ea446a7b",
+          "sets": 3,
+          "reps": "5-8",
+          "weight": 0,
+          "restMin": 3,
+          "restMax": 4,
+          "order": 1,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Barbell One Leg Squat"
+          },
+          "performanceLogs": [
+            {
+              "id": "5ff9d748-11b3-40ca-bf0d-b98c3bf41a95",
+              "workoutExerciseId": "2a40b8e8-e094-4993-8caa-69ee6910f018",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "f647ecc5-47b7-4a48-b80e-cf838b54ee34",
+              "workoutExerciseId": "2a40b8e8-e094-4993-8caa-69ee6910f018",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "d3ede8e6-c9fa-4f12-a7fe-ec2a3b8ea76a",
+              "workoutExerciseId": "2a40b8e8-e094-4993-8caa-69ee6910f018",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            }
+          ]
+        },
+        {
+          "id": "fed9f20e-7924-4165-8609-df28d3ab5252",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "7367f7bb-f657-4592-8240-1ff8fe3acf8f",
+          "sets": 3,
+          "reps": "15-20",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 2,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Barbell Floor Calf Raise"
+          },
+          "performanceLogs": [
+            {
+              "id": "242bc541-e580-4016-a3f5-b34f1c9ddd0f",
+              "workoutExerciseId": "fed9f20e-7924-4165-8609-df28d3ab5252",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "e6e15dcf-0e60-49a8-ad18-e831e7f0f1ab",
+              "workoutExerciseId": "fed9f20e-7924-4165-8609-df28d3ab5252",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "a8ab54e3-2750-4d76-9fba-6273995b2fe6",
+              "workoutExerciseId": "fed9f20e-7924-4165-8609-df28d3ab5252",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            }
+          ]
+        },
+        {
+          "id": "2da06df7-8855-443d-93b7-f800f5c66483",
+          "sessionId": "314eecb6-3ca7-4fc4-9cc0-075de63d7a41",
+          "exerciseId": "b5a5ff01-551c-4211-a48d-57e4d6c51157",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 3,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Curtsey Squat"
+          },
+          "performanceLogs": [
+            {
+              "id": "ee0d03d8-10bd-4362-87a9-d6d817b5d0f9",
+              "workoutExerciseId": "2da06df7-8855-443d-93b7-f800f5c66483",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "9b694187-844c-4f49-b330-88f477c582d6",
+              "workoutExerciseId": "2da06df7-8855-443d-93b7-f800f5c66483",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            },
+            {
+              "id": "c0d6ad94-a831-40e0-9bcd-6f14190c50b9",
+              "workoutExerciseId": "2da06df7-8855-443d-93b7-f800f5c66483",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:27:41.424Z"
+            }
+          ]
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    },
+    {
+      "id": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 1,
+      "dayNumber": 4,
+      "dayLabel": "Wednesday",
+      "focus": "Push / Pull",
+      "isCompleted": true,
+      "completedAt": "2026-02-03T15:00:41.547Z",
+      "sessionLog": {
+        "id": "a47c156a-9b47-4f55-8188-d2feb78103ed",
+        "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+        "durationMinutes": 0,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app",
+        "createdAt": "2026-02-03T15:00:41.549Z"
+      },
+      "exercises": [
+        {
+          "id": "10d5b557-57e5-48da-8576-c4b12c51c8ba",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "b28b27d4-a211-475b-b208-5114c8cd18c4",
+          "sets": 3,
+          "reps": "5-8",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 4,
+          "order": 0,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Wide Reverse Grip Bench Press"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "7e0823c2-93b1-4ab6-b420-e22f4b34b3b1",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "f6e0345b-b7e5-45a5-8daa-89e50acde711",
+          "sets": 3,
+          "reps": "10-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2.5,
+          "order": 1,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Reverse Grip Incline Bench Row"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "d115a488-b635-45a8-a12f-493df1593dbc",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "003a4842-0704-45a6-ae1b-4b4895c6600e",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 5,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Incline Row"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "a8882757-f5c6-414c-859b-87f72857b431",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "a0ae6ffa-599f-4d94-865d-c85d261218f8",
+          "sets": 3,
+          "reps": "5-10",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 2,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Plyo Push Up"
+          },
+          "performanceLogs": [
+            {
+              "id": "f04b9734-4cd6-4ef3-8498-99fc8a5c2381",
+              "workoutExerciseId": "a8882757-f5c6-414c-859b-87f72857b431",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:00:43.779Z"
+            },
+            {
+              "id": "8f084d26-dc3e-4625-ae9e-351a8319b626",
+              "workoutExerciseId": "a8882757-f5c6-414c-859b-87f72857b431",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:00:43.779Z"
+            },
+            {
+              "id": "dd4bb10a-5a61-40aa-91a5-7bf4eb2cbb93",
+              "workoutExerciseId": "a8882757-f5c6-414c-859b-87f72857b431",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T15:00:43.779Z"
+            }
+          ]
+        },
+        {
+          "id": "af543ff0-e4e8-4d9d-bde8-41846fe75b18",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "5a9c413a-24ce-4f52-ab43-1dd5aee052a8",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 2,
+          "order": 3,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Pullover"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "14944cd1-c090-494a-a633-67e8034190be",
+          "sessionId": "4506e0bb-4018-4b2e-858d-8f75e775471e",
+          "exerciseId": "4ec0e4f8-9785-4eeb-97cc-c46a186951f1",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Rear Delt Raise"
+          },
+          "performanceLogs": []
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    },
+    {
+      "id": "c17f016e-a839-4bd0-a155-779b76df80db",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 1,
+      "dayNumber": 3,
+      "dayLabel": "Thursday",
+      "focus": "Legs",
+      "isCompleted": true,
+      "completedAt": "2026-02-03T14:57:06.860Z",
+      "sessionLog": {
+        "id": "344b2835-2e8e-4314-8108-488b71d9c2cb",
+        "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+        "durationMinutes": 0,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app",
+        "createdAt": "2026-02-03T14:57:06.862Z"
+      },
+      "exercises": [
+        {
+          "id": "96f1eb9c-a436-41da-9126-49aad471b690",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "2ec09e52-be30-4ae2-a635-d68d94d8caef",
+          "sets": 3,
+          "reps": "10-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 2,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Rear Lunge"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "0fb64add-e770-486e-9848-5cfde5ba2b30",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "c9d82b04-ec9a-49ae-8f69-a41a94c2872b",
+          "sets": 3,
+          "reps": "10-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 0,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Contralateral Forward Lunge"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "88498ee9-bff5-4571-a76f-dcf5360e4ea7",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "2ba3f557-285f-4df2-92f3-188cad51a1ea",
+          "sets": 4,
+          "reps": "3-6",
+          "weight": 0,
+          "restMin": 3,
+          "restMax": 5,
+          "order": 3,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Barbell Jump Squat"
+          },
+          "performanceLogs": [
+            {
+              "id": "d8e4a9cb-3bc3-47d9-a30e-e6545183b56f",
+              "workoutExerciseId": "88498ee9-bff5-4571-a76f-dcf5360e4ea7",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:57:09.031Z"
+            },
+            {
+              "id": "3ceb7b99-e04c-4856-a2d3-b4ab29a6546a",
+              "workoutExerciseId": "88498ee9-bff5-4571-a76f-dcf5360e4ea7",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:57:09.031Z"
+            },
+            {
+              "id": "6b8c5377-b4e8-4594-9ad2-7d287d40040d",
+              "workoutExerciseId": "88498ee9-bff5-4571-a76f-dcf5360e4ea7",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:57:09.031Z"
+            },
+            {
+              "id": "82976318-0d80-4f3c-b12a-65c449c86101",
+              "workoutExerciseId": "88498ee9-bff5-4571-a76f-dcf5360e4ea7",
+              "setNumber": 4,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:57:09.031Z"
+            }
+          ]
+        },
+        {
+          "id": "8b014132-2840-432d-a51b-0eb617adff26",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "e03da49b-0f64-4b53-a094-122584639bee",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Bench Squat"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "30fc3c0c-47bd-4360-a9ca-80cd6cf5c397",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "2d8ccd04-ad34-4bfe-b3bd-8dc1fa3643a0",
+          "sets": 3,
+          "reps": "15-20",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 1,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Standing Rocking Leg Calf Raise"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "ec26101c-8c1a-4714-9d16-0ffd7375299c",
+          "sessionId": "c17f016e-a839-4bd0-a155-779b76df80db",
+          "exerciseId": "911ceb17-8e65-4d0e-b671-d13f8059931f",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 5,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Lunge"
+          },
+          "performanceLogs": []
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    },
+    {
+      "id": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 1,
+      "dayNumber": 2,
+      "dayLabel": "Tuesday",
+      "focus": "Pull",
+      "isCompleted": true,
+      "completedAt": "2026-02-03T14:56:01.374Z",
+      "sessionLog": {
+        "id": "75d2dedb-97dd-4526-8be3-419133a982e6",
+        "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+        "durationMinutes": 0,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app",
+        "createdAt": "2026-02-03T14:56:01.375Z"
+      },
+      "exercises": [
+        {
+          "id": "725fb296-f916-452e-a4a1-5beaa65f0807",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "4f84366a-c4ad-4494-a1bd-10c8416561fa",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 2,
+          "order": 0,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Pullover"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "14681a5d-dd70-4413-9a71-5ac956d7e5fc",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "967a7252-b134-43ba-a9c9-af2dc7729cbf",
+          "sets": 3,
+          "reps": "10-12",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 5,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Incline Row"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "cc21bbfe-64d4-4fe4-9091-2fe44811e2e0",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "605bacf0-fecf-4d5e-a6db-901d135fbf3d",
+          "sets": 3,
+          "reps": "8-12 (Per Arm)",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 2,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Alternate Biceps Curl"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "f397938c-c460-4192-9129-751599b419be",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "810a82b3-065e-4128-8bde-0d1a08755a37",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 2,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Single Leg Bridge with Outstretched Leg"
+          },
+          "performanceLogs": [
+            {
+              "id": "42346c5e-6569-495e-99b2-a85ec191f4f7",
+              "workoutExerciseId": "f397938c-c460-4192-9129-751599b419be",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:56:02.593Z"
+            },
+            {
+              "id": "6d4d3785-8ddf-4503-8f97-62ef882cc6f2",
+              "workoutExerciseId": "f397938c-c460-4192-9129-751599b419be",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:56:02.593Z"
+            },
+            {
+              "id": "4627c38b-4dcc-4ff9-9b5f-3ba781581a1a",
+              "workoutExerciseId": "f397938c-c460-4192-9129-751599b419be",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:56:02.593Z"
+            }
+          ]
+        },
+        {
+          "id": "685fbca3-6872-4453-9638-ab8b78ddaf3f",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "996a4c6e-6cce-41ae-a9e3-4c9445b09ec4",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 3,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Incline T-Raise"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "37f78b5d-0b32-49a9-89d0-6ad7e502842c",
+          "sessionId": "c6a0744c-2f00-45bd-a211-edfe3f78e4f4",
+          "exerciseId": "91f290bf-08bf-4bf5-9a92-e85386b8f463",
+          "sets": 3,
+          "reps": "8-12",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 1,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Stiff Leg Good Morning"
+          },
+          "performanceLogs": []
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    },
+    {
+      "id": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+      "planId": "49d31c5b-2ec5-427f-bd6e-90189e2673f0",
+      "weekNumber": 1,
+      "dayNumber": 1,
+      "dayLabel": "Monday",
+      "focus": "Push",
+      "isCompleted": true,
+      "completedAt": "2026-02-03T14:51:28.142Z",
+      "sessionLog": {
+        "id": "93cd62f8-8156-48e6-ac95-34b4b5140f98",
+        "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+        "durationMinutes": 3,
+        "perceivedDifficulty": 7,
+        "notes": "Completed via mobile app",
+        "createdAt": "2026-02-03T14:51:28.144Z"
+      },
+      "exercises": [
+        {
+          "id": "20530edc-9225-44c3-9c4f-9ada5eaa8ff6",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "b893b8c7-989e-4484-85fd-17377c76893a",
+          "sets": 4,
+          "reps": "5-8",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 0,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Standing Close Grip Military Press"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "0e5de3ee-6011-4260-be0f-3c0b221aee27",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "9e19ef87-98e8-4145-97fd-5e167e027c0e",
+          "sets": 3,
+          "reps": "10-15",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 1,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Barbell Lying Triceps Extension"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "907f1e1e-3c0c-4e15-b971-f34785ef466b",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "d5026e07-a907-4252-82bb-fc499c1d58e6",
+          "sets": 3,
+          "reps": "10-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 2,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Lateral to Front Raise"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "40a1daf6-afb0-4f2f-885f-7ef94620c765",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "c1526721-b035-4af9-add2-72cee5b7928a",
+          "sets": 3,
+          "reps": "10-16",
+          "weight": 0,
+          "restMin": 1.5,
+          "restMax": 2,
+          "order": 3,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Push-up Inside Leg Kick"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "6897f946-6e5f-48b7-9f22-8725565a4742",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "24478057-6627-4939-8b1d-044762a2854e",
+          "sets": 3,
+          "reps": "12-15",
+          "weight": 0,
+          "restMin": 1,
+          "restMax": 1.5,
+          "order": 4,
+          "isCompleted": false,
+          "exercise": {
+            "name": "Dumbbell Full Can Lateral Raise"
+          },
+          "performanceLogs": []
+        },
+        {
+          "id": "b2adeab3-5870-4206-a7c4-1646530c70f7",
+          "sessionId": "0d2a754c-f5c3-4549-ae92-74ed641c6b63",
+          "exerciseId": "be24d29d-4387-4819-811a-5034079b05b0",
+          "sets": 3,
+          "reps": "6-10",
+          "weight": 0,
+          "restMin": 2,
+          "restMax": 3,
+          "order": 5,
+          "isCompleted": true,
+          "exercise": {
+            "name": "Barbell Incline Bench Press"
+          },
+          "performanceLogs": [
+            {
+              "id": "56cd03c4-250d-401a-8c82-916bc2158cd7",
+              "workoutExerciseId": "b2adeab3-5870-4206-a7c4-1646530c70f7",
+              "setNumber": 1,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:51:30.575Z"
+            },
+            {
+              "id": "97d5c7eb-03cc-4aa8-ab13-1c9220f94d05",
+              "workoutExerciseId": "b2adeab3-5870-4206-a7c4-1646530c70f7",
+              "setNumber": 2,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:51:30.575Z"
+            },
+            {
+              "id": "acb94c11-462c-4e3c-8247-96d182abf4fb",
+              "workoutExerciseId": "b2adeab3-5870-4206-a7c4-1646530c70f7",
+              "setNumber": 3,
+              "weight": 0,
+              "actualReps": 10,
+              "rpe": 0,
+              "isPersonalRecord": false,
+              "createdAt": "2026-02-03T14:51:30.575Z"
+            }
+          ]
+        }
+      ],
+      "plan": {
+        "name": "Plan - STRENGTH",
+        "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1"
+      }
+    }
+  ],
+  "metricEvents": [
+    {
+      "id": "ec51c190-cfe2-4133-bfd7-73543c4df9ee",
+      "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1",
+      "type": "WORKOUT_COMPLETE",
+      "value": 1,
+      "unit": null,
+      "metadata": {},
+      "createdAt": "2026-02-04T17:10:07.489Z"
+    }
+  ],
+  "summaries": [
+    {
+      "id": "eecd7f3d-b8d1-44ab-bc45-5c218e46607a",
+      "userId": "7f3aefa4-c1cf-4773-b87a-a84ada3c6dc1",
+      "metricKey": "WORKOUT_COMPLETE_streak",
+      "value": 1,
+      "metadata": {},
+      "lastUpdated": "2026-02-04T17:10:08.596Z"
+    }
+  ]
+}

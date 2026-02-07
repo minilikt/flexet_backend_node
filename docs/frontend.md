@@ -109,11 +109,40 @@ Creates or updates the multi-week adaptive training plan.
   { "message": "Workout plan generated successfully", "plan": { "id": "uuid", "sessions": [...] } }
   ```
 
-### GET `/my-plans`
+### GET `/plans`
 Retrieves all workout plans for the user.
 - **Response (200)**:
   ```json
   { "plans": [ { "id": "...", "status": "ACTIVE", "sessions": [...] } ] }
+  ```
+
+### GET `/session`
+Retrieves the current incomplete session for the active plan.
+- **Response (200)**:
+  ```json
+  {
+    "status": "success",
+    "message": "Active session fetched successfully",
+    "data": {
+      "session": {
+        "id": "uuid",
+        "dayLabel": "Monday",
+        "focus": "Upper Body",
+        "weekNumber": 1,
+        "dayNumber": 1,
+        "isCompleted": false,
+        "exercises": [
+          {
+            "id": "uuid",
+            "exercise": { "name": "Bench Press", "gifUrl": "..." },
+            "sets": 3,
+            "reps": "8-12",
+            "restMin": 60
+          }
+        ]
+      }
+    }
+  }
   ```
 
 ### GET `/trends`
@@ -235,5 +264,5 @@ Log current weight/fat percentage.
 Use these exact strings in requests:
 - **Goals**: `STRENGTH`, `HYPERTROPHY`, `ENDURANCE`, `MAINTENANCE`, `WEIGHT_LOSS`
 - **Level**: `BEGINNER`, `INTERMEDIATE`, `ADVANCED`
-- **Feedback**: `LIKE`, `DISLIKE`, `AVOID`
+- **Feedback**: `NEUTRAL`, `LIKE`, `DISLIKE`, `AVOID`
 - **Progression**: `LINEAR`, `DOUBLE_PROGRESSION`, `WAVE`
