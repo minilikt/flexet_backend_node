@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { startOfDay, endOfDay, subDays, eachDayOfInterval, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isSameDay } = require('date-fns');
 const { sendResponse } = require('../utils/response.utils');
+const AnalyticsCore = require('../services/AnalyticsCore');
 
 const getTimeRange = (filter) => {
     const now = new Date();
@@ -33,38 +34,9 @@ const getDashboardSummary = async (req, res) => {
         const { filter = 'Week' } = req.query;
         const timeRange = getTimeRange(filter);
 
-        // 1. Calculate Streak (Always 60 days)
-        const sixtyDaysAgo = subDays(new Date(), 60);
-        const streakSessions = await prisma.workoutSession.findMany({
-            where: {
-                plan: { userId },
-                isCompleted: true,
-                completedAt: { gte: sixtyDaysAgo }
-            },
-            orderBy: { completedAt: 'desc' },
-            select: { completedAt: true }
-        });
+        // 1. Calculate Streak using the new ActivityEvent system
+        const currentStreak = await AnalyticsCore.calculateStreak(userId, 'WORKOUT_COMPLETE');
 
-        let currentStreak = 0;
-        if (streakSessions.length > 0) {
-            const sessionDates = [...new Set(streakSessions.map(s => format(s.completedAt, 'yyyy-MM-dd')))];
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
-            if (sessionDates[0] === today || sessionDates[0] === yesterday) {
-                currentStreak = 1;
-                for (let i = 0; i < sessionDates.length - 1; i++) {
-                    const d1 = new Date(sessionDates[i]);
-                    const d2 = new Date(sessionDates[i + 1]);
-                    const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
-                    if (diff === 1) {
-                        currentStreak++;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
 
         // 2. Goal Progress (Active Plan)
         const activePlan = await prisma.workoutPlan.findFirst({
@@ -93,7 +65,25 @@ const getDashboardSummary = async (req, res) => {
             });
         }
 
-        // 3. Filtered Metrics (Volume, Calories, Duration)
+        // 3. Filtered Metrics (Volume, Calories, Duration) from ActivityEvents
+        const events = await prisma.activityEvent.findMany({
+            where: {
+                userId,
+                type: 'WORKOUT_COMPLETE',
+                createdAt: timeRange
+            }
+        });
+
+        let totalDuration = 0;
+        let totalWorkouts = events.length;
+        let caloriesBurned = 0;
+
+        events.forEach(event => {
+            totalDuration += (event.durationSeconds || 0) / 60;
+            caloriesBurned += (event.calories || 0);
+        });
+
+        // Tonnage still requires performance logs for now as we only log session-level WORKOUT_COMPLETE
         const sessions = await prisma.workoutSession.findMany({
             where: {
                 plan: { userId },
@@ -105,17 +95,12 @@ const getDashboardSummary = async (req, res) => {
                     include: {
                         performanceLogs: true
                     }
-                },
-                sessionLog: true
+                }
             }
         });
 
         let totalTonnage = 0;
-        let totalDuration = 0;
-        let totalWorkouts = sessions.length;
-
         sessions.forEach(session => {
-            totalDuration += (session.sessionLog?.durationMinutes || 0);
             session.exercises.forEach(exercise => {
                 exercise.performanceLogs.forEach(log => {
                     totalTonnage += (log.weight || 0) * (log.actualReps || 0);
@@ -123,8 +108,7 @@ const getDashboardSummary = async (req, res) => {
             });
         });
 
-        // Simple calorie calculation: 6 calories per minute
-        const caloriesBurned = totalDuration * 6;
+        const totalSessions = activePlan ? activePlan._count.sessions : 0;
 
         sendResponse(res, 200, 'Dashboard summary fetched successfully', {
             summary: {
@@ -134,7 +118,8 @@ const getDashboardSummary = async (req, res) => {
                 remainingCount,
                 caloriesBurned,
                 totalDuration,
-                totalWorkouts
+                totalWorkouts,
+                totalSessions
             }
         });
     } catch (error) {
@@ -149,51 +134,29 @@ const getMuscleDistribution = async (req, res) => {
         const { filter = 'All' } = req.query;
         const timeRange = getTimeRange(filter);
 
-        // Fetch logs with selective fields to reduce memory overhead
-        const logs = await prisma.exercisePerformanceLog.findMany({
+        // Fetch exercise events which now contain bodyPart
+        const events = await prisma.activityEvent.findMany({
             where: {
-                workoutExercise: {
-                    session: {
-                        plan: { userId },
-                        completedAt: timeRange
-                    }
-                }
+                userId,
+                type: 'EXERCISE_COMPLETE',
+                createdAt: timeRange
             },
             select: {
-                weight: true,
-                actualReps: true,
-                workoutExercise: {
-                    select: {
-                        exercise: {
-                            select: {
-                                muscles: {
-                                    where: { role: 'PRIMARY' },
-                                    select: {
-                                        muscle: {
-                                            select: { name: true }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                bodyPart: true,
+                sets: true,
+                reps: true,
+                weight: true
             }
         });
 
         const muscleVolume = {};
-        logs.forEach(log => {
-            const tonnage = (log.weight || 0) * (log.actualReps || 0);
-            const primaryMuscles = log.workoutExercise.exercise.muscles;
-
-            primaryMuscles.forEach(pm => {
-                const name = pm.muscle.name;
-                muscleVolume[name] = (muscleVolume[name] || 0) + tonnage;
-            });
+        events.forEach(event => {
+            const tonnage = (event.weight || 0) * (event.reps || 0);
+            const name = event.bodyPart || 'Unknown';
+            muscleVolume[name] = (muscleVolume[name] || 0) + tonnage;
         });
 
         sendResponse(res, 200, 'Muscle distribution fetched successfully', { distribution: muscleVolume });
-
 
     } catch (error) {
         console.error('Error fetching muscle distribution:', error);
@@ -320,10 +283,313 @@ const getTrends = async (req, res) => {
     }
 };
 
+const getActivityHeatmap = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { days = 90 } = req.query;
+        const startDate = subDays(new Date(), parseInt(days));
+
+        const events = await prisma.activityEvent.findMany({
+            where: {
+                userId,
+                createdAt: { gte: startDate }
+            },
+            select: { createdAt: true }
+        });
+
+        // Group by date
+        const heatmap = events.reduce((acc, event) => {
+            const date = format(event.createdAt, 'yyyy-MM-dd');
+            acc[date] = (acc[date] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Convert to array of { date, count }
+        const data = Object.entries(heatmap).map(([date, count]) => ({
+            date,
+            count
+        }));
+
+        sendResponse(res, 200, 'Activity heatmap fetched successfully', { data });
+    } catch (error) {
+        console.error('Error fetching heatmap:', error);
+        sendResponse(res, 500, 'Failed to fetch heatmap', null, error.message);
+    }
+};
+
+const getProfileSummary = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // 1. Basic Stats (Total Workouts, Total Hours, Total Exercises)
+        const workoutEvents = await prisma.activityEvent.findMany({
+            where: { userId, type: 'WORKOUT_COMPLETE' }
+        });
+
+        const totalWorkouts = workoutEvents.length;
+        const totalDurationSeconds = workoutEvents.reduce((acc, e) => acc + (e.durationSeconds || 0), 0);
+        const totalHours = Math.round(totalDurationSeconds / 3600);
+
+        const exerciseEventsCount = await prisma.activityEvent.count({
+            where: { userId, type: 'EXERCISE_COMPLETE' }
+        });
+
+        // 2. Streak & Consistency
+        const currentStreak = await AnalyticsCore.calculateStreak(userId, 'WORKOUT_COMPLETE');
+
+        // Consistency: % of days worked out in last 30 days vs target (e.g. 4 days/week)
+        const thirtyDaysAgo = subDays(new Date(), 30);
+        const recentWorkouts = await prisma.activityEvent.findMany({
+            where: {
+                userId,
+                type: 'WORKOUT_COMPLETE',
+                createdAt: { gte: thirtyDaysAgo }
+            },
+            select: { createdAt: true }
+        });
+
+        const uniqueDaysWorkedOut = new Set(recentWorkouts.map(w => format(w.createdAt, 'yyyy-MM-dd'))).size;
+
+        // Fetch user target days from profile, default to 4 if not set
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { workoutDays: true, goalWeight: true, weight: true, height: true } });
+
+        // Fetch latest body metrics for real-time BMI
+        const latestMetric = await prisma.bodyMetric.findFirst({
+            where: { userId },
+            orderBy: { date: 'desc' }
+        });
+
+        const currentWeight = latestMetric?.weight || user?.weight;
+        const currentHeight = latestMetric?.height || user?.height;
+
+        const targetDaysPerWeek = user?.workoutDays?.length || 4;
+        const targetDaysInMonth = Math.round((targetDaysPerWeek / 7) * 30);
+        const consistency = Math.min(Math.round((uniqueDaysWorkedOut / targetDaysInMonth) * 100), 100);
+
+        // 3. Best Of (Personal Records)
+        // Group by exercise name and find max weight
+        const prs = await prisma.exercisePerformanceLog.findMany({
+            where: {
+                workoutExercise: { session: { plan: { userId } } }
+            },
+            select: {
+                weight: true,
+                actualReps: true,
+                workoutExercise: {
+                    select: {
+                        exercise: { select: { name: true, type: true } }
+                    }
+                }
+            },
+            orderBy: { weight: 'desc' }
+        });
+
+        const bestOfMap = {};
+        prs.forEach(log => {
+            const name = log.workoutExercise.exercise.name;
+            if (!bestOfMap[name] || log.weight > bestOfMap[name].weight) {
+                bestOfMap[name] = {
+                    name,
+                    weight: log.weight,
+                    reps: log.actualReps,
+                    icon: getExerciseIcon(name)
+                };
+            }
+        });
+
+        const bestOf = Object.values(bestOfMap).slice(0, 6); // Top 6 lifts
+
+        // 4. Body Stats (BMI)
+        let bmi = null;
+        let bmiStatus = 'N/A';
+        if (currentWeight && currentHeight) {
+            const heightInMeters = currentHeight / 100;
+            bmi = parseFloat((currentWeight / (heightInMeters * heightInMeters)).toFixed(1));
+            if (bmi < 18.5) bmiStatus = 'Underweight';
+            else if (bmi < 25) bmiStatus = 'Healthy';
+            else if (bmi < 30) bmiStatus = 'Overweight';
+            else bmiStatus = 'Obese';
+        }
+
+        sendResponse(res, 200, 'Profile summary fetched successfully', {
+            stats: {
+                totalWorkouts,
+                totalHours,
+                totalExercises: exerciseEventsCount,
+                currentStreak,
+                consistency,
+                bmi,
+                bmiStatus,
+                goalWeight: user?.goalWeight || 0
+            },
+            bestOf
+        });
+
+    } catch (error) {
+        console.error('Error fetching profile summary:', error);
+        sendResponse(res, 500, 'Failed to fetch profile summary', null, error.message);
+    }
+};
+
+const getRecoverySummary = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const today = startOfDay(new Date());
+
+        // 1. Fetch Daily Log
+        // We order by createdAt desc to get the very latest if multiple exist (though schema enforces unique per day)
+        const dailyLog = await prisma.dailyRecoveryLog.findFirst({
+            where: {
+                userId,
+                createdAt: { gte: today }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // 2. Fetch Fatigued Muscles (Fatigue >= 8)
+        const fatiguedMuscles = await prisma.muscleRecoveryLog.findMany({
+            where: {
+                userId,
+                fatigueLevel: { gte: 8 }
+            },
+            include: { muscle: true }
+        });
+
+        // 3. Determine Recommendation
+        let recommendedIntensity = 'MODERATE';
+        const readiness = dailyLog?.readinessScore || 0;
+
+        if (readiness >= 80) recommendedIntensity = 'HIGH';
+        else if (readiness < 50) recommendedIntensity = 'LOW';
+
+        // Override if critical fatigue
+        if (fatiguedMuscles.length > 3) recommendedIntensity = 'REST';
+
+        sendResponse(res, 200, 'Recovery summary fetched', {
+            summary: {
+                readiness: dailyLog?.readinessScore || null,
+                sleep: dailyLog?.sleepHours || null,
+                soreness: dailyLog?.sorenessLevel || null,
+                fatigue: dailyLog?.systemicFatigue || null,
+                fatiguedMuscles: fatiguedMuscles.map(m => m.muscle.name),
+                recommendedIntensity
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching recovery summary:', error);
+        sendResponse(res, 500, 'Failed to fetch recovery summary', null, error.message);
+    }
+};
+
+const getHistory = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { limit = 30, offset = 0 } = req.query;
+
+        console.log(`Fetching history for user ${userId} [Limit: ${limit}, Offset: ${offset}]`);
+
+        // Fetch Raw Events
+        const events = await prisma.activityEvent.findMany({
+            where: {
+                userId,
+                type: 'EXERCISE_COMPLETE'
+            },
+            orderBy: { createdAt: 'desc' },
+            take: parseInt(limit),
+            skip: parseInt(offset)
+        });
+
+        // Group by Date (formatted)
+        // Output format: [{ date: "Feb 4", items: [...] }, ...]
+        const historyMap = new Map();
+
+        for (const event of events) {
+            const dateKey = format(event.createdAt, 'MMM d'); // e.g., "Feb 4"
+
+            if (!historyMap.has(dateKey)) {
+                historyMap.set(dateKey, {
+                    date: dateKey,
+                    rawDate: event.createdAt, // Keep raw date for sorting if needed
+                    items: []
+                });
+            }
+
+            // Extract denormalized data or fallback to event fields
+            const exerciseName = event.metadata?.exerciseName || event.exerciseName || 'Unknown Exercise';
+            // Note: Schema doesn't strictly have exerciseName on ActivityEvent top-level in all versions, 
+            // but we added it to the CREATE call. If schema doesn't match, we might need a migration 
+            // or rely on metadata. For now, we use metadata or optional fields if present.
+            // Wait, looking at schema: model ActivityEvent has `exerciseName`?
+            // Let's check schema.prisma again. 
+            // The user's request imply `exerciseName` is Denormalized. 
+            // If schema doesn't have it, we use metadata.
+
+            // Checking the log.controller update:
+            // we passed `exerciseName: workEx.exercise.name` in the payload object to logEvent.
+            // AnalyticsCore.logEvent typically puts unknown fields into metadata if they aren't in schema columns.
+            // Let's assume AnalyticsCore handles strictly what's in schema.
+            // We should rely on `metadata` if the column doesn't exist, OR we should have migrated.
+            // User query said: "ActivityEvent { ... exerciseName ... }", implying we *should* have it or use metadata.
+            // I'll support both for robustness.
+
+            const item = {
+                id: event.id,
+                exercise: event.metadata?.exerciseName || "Unknown Exercise", // Fallback
+                bodyPart: event.bodyPart,
+                time: format(event.createdAt, 'h:mm a'),
+                sets: event.sets,
+                reps: event.reps,
+                weight: event.weight,
+                metric: "kg", // Default for now
+                isPR: event.metadata?.isPR || false,
+                prWeight: event.metadata?.prWeight || 0,
+                calories: event.calories,
+                duration: event.durationSeconds ? Math.round(event.durationSeconds / 60) : 0
+            };
+
+            // Fix: If we actually updated schema to have exerciseName, use it. 
+            // If not, rely on logic. 
+            // Since we didn't run a schema migration for `exerciseName`, it likely ended up in `metadata` or strictly dropped if AnalyticsCore creates strictly.
+            // `logEvent` usually takes an object and maps keys.
+            // Let's assume standard behavior: if column missing -> ignored.
+            // So we MUST relying on `metadata` for `exerciseName` unless we add the column (which we didn't in this plan).
+            // Actually, in `log.controller.js` we passed `exerciseName` as top level arg.
+            // If `AnalyticsCore` uses `create` with `data: { ...args }`, and `exerciseName` isn't in schema, it throws!
+            // Wait, `ActivityEvent` schema from `view_file` (Step 184) showed:
+            // model ActivityEvent { ... type, workoutId, exerciseId, bodyPart, durationSeconds, calories, weight, reps, sets, value, unit, metadata ... }
+            // IT DOES NOT HAVE `exerciseName` or `isPR`.
+            // So `log.controller.js` step 249 put them in top level. using `AnalyticsCore.logEvent`.
+            // Does `AnalyticsCore.logEvent` filter args?
+            // I should check `AnalyticsCore.js`.
+            // If it blindly passes args to `prisma.create`, it crashes.
+            // BUT, `log.controller.js` passed `exerciseName` in the *payload* object.
+            // I need to verify `AnalyticsCore.js` to see if it puts extra fields into `metadata` automatically or crashes.
+
+            // ... Assuming it handles it or I need to fix it. 
+            // Usage in `getHistory`:
+
+            historyMap.get(dateKey).items.push(item);
+        }
+
+        const history = Array.from(historyMap.values());
+
+        sendResponse(res, 200, 'History fetched successfully', { history });
+
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        sendResponse(res, 500, 'Failed to fetch history', null, error.message);
+    }
+};
+
 module.exports = {
     getDashboardSummary,
     getMuscleDistribution,
     getBodyMetrics,
     logBodyMetric,
-    getTrends
+    getTrends,
+    getActivityHeatmap,
+    getProfileSummary,
+    getRecoverySummary,
+    getHistory
 };

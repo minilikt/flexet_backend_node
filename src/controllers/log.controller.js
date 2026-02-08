@@ -2,27 +2,38 @@ const { PrismaClient } = require('@prisma/client');
 const WorkoutGenerator = require('../utils/workoutGenerator');
 const prisma = new PrismaClient();
 const { sendResponse } = require('../utils/response.utils');
+const AnalyticsCore = require('../services/AnalyticsCore');
 
 
 const logSession = async (req, res) => {
     try {
         const { sessionId, status, difficulty, duration, notes } = req.body;
+        const userId = req.user.userId;
+
+        // Security: Verify Session Ownership
+        const session = await prisma.workoutSession.findUnique({
+            where: { id: sessionId },
+            include: { plan: true }
+        });
+
+        if (!session || session.plan.userId !== userId) {
+            return sendResponse(res, 403, 'Unauthorized access to this session');
+        }
+
+        const clampedDifficulty = difficulty ? Math.min(10, Math.max(1, parseInt(difficulty))) : null;
+        const clampedDuration = duration ? Math.max(0, parseInt(duration)) : null;
 
         const log = await prisma.workoutSessionLog.create({
             data: {
                 sessionId,
-                perceivedDifficulty: parseInt(difficulty),
-                durationMinutes: parseInt(duration),
+                perceivedDifficulty: clampedDifficulty,
+                durationMinutes: clampedDuration,
                 notes
             }
         });
 
-        if (status === 'COMPLETED') {
-            await prisma.workoutSession.update({
-                where: { id: sessionId },
-                data: { isCompleted: true, completedAt: new Date() }
-            });
-        }
+        // REMOVED: Completion logic moved to submitSessionResult to prevent duplicate logging/race conditions.
+        // if (status === 'COMPLETED') { ... }
 
         sendResponse(res, 200, 'Session logged successfully', { log });
 
@@ -34,6 +45,17 @@ const logSession = async (req, res) => {
 const logPerformance = async (req, res) => {
     try {
         const { workoutExerciseId, sets } = req.body;
+        const userId = req.user.userId;
+
+        // Security: Verify Exercise Ownership
+        const workoutExercise = await prisma.workoutExercise.findUnique({
+            where: { id: workoutExerciseId },
+            include: { session: { include: { plan: true } } }
+        });
+
+        if (!workoutExercise || workoutExercise.session.plan.userId !== userId) {
+            return sendResponse(res, 403, 'Unauthorized access to this exercise');
+        }
 
         const logs = await Promise.all(sets.map((set, index) =>
             prisma.exercisePerformanceLog.create({
@@ -42,7 +64,9 @@ const logPerformance = async (req, res) => {
                     setNumber: index + 1,
                     weight: parseFloat(set.weight),
                     actualReps: parseInt(set.reps),
-                    rpe: parseInt(set.rpe)
+                    rpe: Math.min(10, Math.max(1, parseInt(set.rpe) || 0)),
+                    volume: (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0),
+                    completed: true
                 }
             })
         ));
@@ -88,22 +112,32 @@ const logRecovery = async (req, res) => {
         const { readiness, sleep, fatigue, soreness, muscleFatigues } = req.body;
         const userId = req.user.userId;
 
+        // Validation: Clamp values
+        const clamp = (val, min, max) => Math.min(max, Math.max(min, val || 0));
+
+        const safeReadiness = clamp(readiness, 0, 100);
+        const safeSleep = Math.max(0, parseFloat(sleep) || 0);
+        const safeFatigue = clamp(fatigue, 0, 10);
+        const safeSoreness = clamp(soreness, 0, 10);
+
         // Use a more robust way to define "today" for the unique date check
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const daily = await prisma.dailyRecoveryLog.upsert({
-            where: { createdAt: today },
-            update: { readinessScore: readiness, sleepHours: sleep, systemicFatigue: fatigue, sorenessLevel: soreness },
-            create: { userId, readinessScore: readiness, sleepHours: sleep, systemicFatigue: fatigue, sorenessLevel: soreness, createdAt: today }
+            where: { userId_createdAt: { userId, createdAt: today } },
+            where: { userId_createdAt: { userId, createdAt: today } },
+            update: { readinessScore: safeReadiness, sleepHours: safeSleep, systemicFatigue: safeFatigue, sorenessLevel: safeSoreness },
+            create: { userId, readinessScore: safeReadiness, sleepHours: safeSleep, systemicFatigue: safeFatigue, sorenessLevel: safeSoreness, createdAt: today }
         });
 
         if (muscleFatigues) {
             for (const mf of muscleFatigues) {
+                const safeLevel = clamp(mf.level, 0, 10);
                 await prisma.muscleRecoveryLog.upsert({
                     where: { userId_muscleId: { userId, muscleId: mf.muscleId } },
-                    update: { fatigueLevel: mf.level },
-                    create: { userId, muscleId: mf.muscleId, fatigueLevel: mf.level }
+                    update: { fatigueLevel: safeLevel },
+                    create: { userId, muscleId: mf.muscleId, fatigueLevel: safeLevel }
                 });
             }
         }
@@ -120,29 +154,64 @@ const submitSessionResult = async (req, res) => {
         const { sessionId, durationMinutes, perceivedDifficulty, notes, exercises } = req.body;
         const userId = req.user.userId;
 
+        // Security: Verify Session Ownership
+        const session = await prisma.workoutSession.findUnique({
+            where: { id: sessionId },
+            include: { plan: true }
+        });
+
+        if (!session || session.plan.userId !== userId) {
+            return sendResponse(res, 403, 'Unauthorized access to this session');
+        }
+
+        // Validation: Clamp session values
+        const safeDuration = Math.max(0, parseInt(durationMinutes) || 0);
+        const safeDifficulty = perceivedDifficulty ? Math.min(10, Math.max(1, parseInt(perceivedDifficulty))) : null;
+
         console.log(`Processing session results for session ${sessionId} [User: ${userId}]`);
 
         const result = await prisma.$transaction(async (tx) => {
             console.log(`Bulk processing ${exercises.length} exercises...`);
+
             // 1. Log overall session and mark as completed
-            const [sessionLog] = await Promise.all([
-                tx.workoutSessionLog.create({
-                    data: { sessionId, durationMinutes, perceivedDifficulty, notes }
-                }),
-                tx.workoutSession.update({
-                    where: { id: sessionId },
-                    data: { isCompleted: true, completedAt: new Date() }
-                })
-            ]);
+            const resultSessionLog = tx.workoutSessionLog.create({
+                data: { sessionId, durationMinutes: safeDuration, perceivedDifficulty: safeDifficulty, notes }
+            });
+            const resultSessionUpdate = tx.workoutSession.update({
+                where: { id: sessionId },
+                data: { isCompleted: true, completedAt: new Date() }
+            });
+
+            // 2. Pre-fetch all workout exercises to get exerciseIds and muscle roles
+            const workoutExerciseIds = exercises.map(e => e.workoutExerciseId);
+            const workoutExercisesMap = await tx.workoutExercise.findMany({
+                where: { id: { in: workoutExerciseIds } },
+                include: {
+                    exercise: {
+                        select: {
+                            id: true,
+                            muscles: { select: { muscleId: true, role: true } }
+                        }
+                    }
+                }
+            });
+
+            const weMap = new Map(workoutExercisesMap.map(we => [we.id, we]));
 
             const muscleFatigueChanges = new Map(); // muscleId -> increment
             const performanceLogs = [];
             const feedbackUpserts = [];
             const exerciseUpdates = [];
 
-            // 2. Accumulate data in-memory
+            // 3. Prepare all operations in memory
             for (const exResult of exercises) {
                 const { workoutExerciseId, sets, feedback } = exResult;
+                const workoutEx = weMap.get(workoutExerciseId);
+
+                if (!workoutEx) {
+                    console.warn(`WorkoutExercise ${workoutExerciseId} not found, skipping.`);
+                    continue;
+                }
 
                 // A. Performance Logs
                 sets.forEach(set => {
@@ -151,24 +220,25 @@ const submitSessionResult = async (req, res) => {
                         setNumber: set.setNumber,
                         weight: parseFloat(set.weight) || 0,
                         actualReps: parseInt(set.reps) || 0,
-                        rpe: parseInt(set.rpe) || 0,
-                        isPersonalRecord: set.isPR || false
+                        rpe: Math.min(10, Math.max(1, parseInt(set.rpe) || 0)),
+                        volume: (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0),
+                        isPersonalRecord: set.isPR || false,
+                        completed: true
                     });
                 });
 
-                // B. Batch Exercise Updates & Fatigue mapping
-                const workoutEx = await tx.workoutExercise.update({
+                // B. Batch Exercise Updates
+                exerciseUpdates.push(tx.workoutExercise.update({
                     where: { id: workoutExerciseId },
-                    data: { isCompleted: true },
-                    include: { exercise: { select: { id: true, muscles: { select: { muscleId: true, role: true } } } } }
-                });
+                    data: { isCompleted: true }
+                }));
 
                 // C. Feedback
                 if (feedback) {
                     let normPreference = feedback.preference ? feedback.preference.toUpperCase() : null;
                     const validPreferences = ['LIKE', 'DISLIKE', 'AVOID'];
                     if (!validPreferences.includes(normPreference)) {
-                        normPreference = null; // Map NEUTRAL or others to null
+                        normPreference = null;
                     }
 
                     feedbackUpserts.push(tx.exerciseFeedback.upsert({
@@ -179,22 +249,24 @@ const submitSessionResult = async (req, res) => {
                 }
 
                 // D. Aggregate Fatigue
-                for (const m of workoutEx.exercise.muscles) {
-                    const inc = m.role === 'PRIMARY' ? 2 : 1;
-                    muscleFatigueChanges.set(m.muscleId, (muscleFatigueChanges.get(m.muscleId) || 0) + inc);
+                if (workoutEx.exercise && workoutEx.exercise.muscles) {
+                    for (const m of workoutEx.exercise.muscles) {
+                        const inc = m.role === 'PRIMARY' ? 2 : 1;
+                        muscleFatigueChanges.set(m.muscleId, (muscleFatigueChanges.get(m.muscleId) || 0) + inc);
+                    }
                 }
             }
 
-            // 3. Serialized Batch Updates (Prisma doesn't support aggregate upsert, but we've reduced calls)
-            if (performanceLogs.length > 0) {
-                await tx.exercisePerformanceLog.createMany({ data: performanceLogs });
-            }
+            // 4. Batch Execute Everything
+            const [sessionLog] = await Promise.all([
+                resultSessionLog,
+                resultSessionUpdate,
+                ...exerciseUpdates,
+                ...feedbackUpserts,
+                tx.exercisePerformanceLog.createMany({ data: performanceLogs })
+            ]);
 
-            if (feedbackUpserts.length > 0) {
-                await Promise.all(feedbackUpserts);
-            }
-
-            // E. Apply and Cap Fatigue
+            // 5. Apply Fatigue (concurrently)
             const fatiguePromises = [];
             for (const [muscleId, inc] of muscleFatigueChanges.entries()) {
                 fatiguePromises.push((async () => {
@@ -219,6 +291,78 @@ const submitSessionResult = async (req, res) => {
             maxWait: 10000,
             timeout: 30000
         });
+
+        // --- EMIT EVENTS AFTER TRANSACTION TO REDUCE LOCK TIME ---
+        try {
+            // 1. Log overall workout
+            await AnalyticsCore.logEvent(userId, 'WORKOUT_COMPLETE', {
+                workoutId: sessionId,
+                durationSeconds: (durationMinutes || 0) * 60,
+                calories: (durationMinutes || 0) * 6,
+                metadata: { notes }
+            });
+
+            // 2. Log per-exercise stats
+            // Fetch updated exercise details (with specific primary muscles)
+            const workoutExerciseIds = exercises.map(e => e.workoutExerciseId);
+            const exerciseDetails = await prisma.workoutExercise.findMany({
+                where: { id: { in: workoutExerciseIds } },
+                include: { exercise: { include: { muscles: { where: { role: 'PRIMARY' }, include: { muscle: true } } } } }
+            });
+            const exMap = new Map(exerciseDetails.map(e => [e.id, e]));
+
+            for (const exResult of exercises) {
+                const { workoutExerciseId, sets } = exResult;
+                const workEx = exMap.get(workoutExerciseId);
+
+                if (workEx) {
+                    const primaryMuscle = workEx.exercise.muscles[0]?.muscle.name || 'Unknown';
+                    const totalReps = sets.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0);
+                    // Use max weight instead of average for PR tracking (and general "heaviest set")
+                    const maxWeight = sets.length > 0 ? Math.max(...sets.map(s => parseFloat(s.weight) || 0)) : 0;
+
+                    // PR Detection
+                    const previousBest = await prisma.exercisePerformanceLog.findFirst({
+                        where: {
+                            workoutExercise: {
+                                exerciseId: workEx.exerciseId,
+                                session: {
+                                    plan: { userId },
+                                    completedAt: { lt: new Date() } // Look at past sessions
+                                }
+                            }
+                        },
+                        orderBy: { weight: 'desc' },
+                        select: { weight: true }
+                    });
+
+                    const isPR = !previousBest || maxWeight > previousBest.weight;
+                    const prWeight = isPR ? maxWeight : (previousBest?.weight || 0);
+
+                    await AnalyticsCore.logEvent(userId, 'EXERCISE_COMPLETE', {
+                        workoutId: sessionId,
+                        exerciseId: workEx.exerciseId,
+                        exerciseName: workEx.exercise.name, // Denormalized name
+                        bodyPart: primaryMuscle,
+                        sets: sets.length,
+                        reps: totalReps,
+                        weight: maxWeight, // Store max weight for history display
+                        isPR,
+                        prWeight,
+                        metadata: {
+                            workoutExerciseId,
+                            denormalizedData: {
+                                sets: sets.length,
+                                maxWeight,
+                                totalReps
+                            }
+                        }
+                    });
+                }
+            }
+        } catch (eventError) {
+            console.error("Event logging failed (non-fatal):", eventError);
+        }
 
         // --- NEW: REACTIVE SYNC HOOK ---
         // After successful transaction, update the rest of the plan

@@ -8,16 +8,42 @@ const { format, subDays, differenceInDays } = require('date-fns');
  */
 class AnalyticsCore {
     /**
-     * Logs a generic event for a user.
+     * Logs an activity event for a user.
      */
-    static async logEvent(userId, type, value = 1, unit = null, metadata = {}) {
-        return await prisma.metricEvent.create({
+    static async logEvent(userId, type, payload = {}) {
+        const {
+            value = 1,
+            unit = null,
+            metadata = {},
+            workoutId = null,
+            exerciseId = null,
+            bodyPart = null,
+            durationSeconds = null,
+            calories = null,
+            weight = null,
+            reps = null,
+            sets = null,
+            ...otherFields // Capture any other fields (e.g., exerciseName, isPR)
+        } = payload;
+
+        // Merge explicit metadata with other loose fields
+        const finalMetadata = { ...metadata, ...otherFields };
+
+        return await prisma.activityEvent.create({
             data: {
                 userId,
                 type,
-                value: parseFloat(value),
+                value: value !== null ? parseFloat(value) : null,
                 unit,
-                metadata
+                metadata: finalMetadata,
+                workoutId,
+                exerciseId,
+                bodyPart,
+                durationSeconds,
+                calories,
+                weight: weight !== null ? parseFloat(weight) : null,
+                reps: reps !== null ? parseInt(reps) : null,
+                sets: sets !== null ? parseInt(sets) : null
             }
         });
     }
@@ -28,7 +54,7 @@ class AnalyticsCore {
     static async calculateStreak(userId, eventType, windowDays = 60) {
         const startDate = subDays(new Date(), windowDays);
 
-        const events = await prisma.metricEvent.findMany({
+        const events = await prisma.activityEvent.findMany({
             where: {
                 userId,
                 type: eventType,
@@ -74,7 +100,7 @@ class AnalyticsCore {
      */
     static async calculateVolume(userId, eventType, days = 7) {
         const startDate = subDays(new Date(), days);
-        const result = await prisma.metricEvent.aggregate({
+        const result = await prisma.activityEvent.aggregate({
             where: {
                 userId,
                 type: eventType,

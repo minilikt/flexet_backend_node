@@ -237,3 +237,72 @@ Logs current physiological data.
     "fatPercentage": 14.2
   }
   ```
+
+### Get Recovery Summary
+Returns the user's current recovery status based on sleep, readiness, and fatigue logs.
+
+- **URL**: `/api/analytics/recovery-summary`
+- **Method**: `GET`
+- **Auth Required**: Yes
+
+#### Success Response
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "readiness": 85,
+      "sleep": 7.5,
+      "soreness": 3,
+      "fatigue": 4,
+      "fatiguedMuscles": ["Quads", "Lower Back"],
+      "recommendedIntensity": "HIGH" // HIGH, MODERATE, LOW, REST
+    }
+  }
+}
+```
+
+### Get Exercise History
+Returns a feed of completed exercises, grouped by date.
+
+- **URL**: `/api/analytics/history`
+- **Method**: `GET`
+- **Auth Required**: Yes
+- **Query Params**:
+  - `limit`: Number of items to return (default: 30)
+  - `offset`: Pagination offset (default: 0)
+
+#### Success Response
+- **Code**: 200 OK
+- **Content**:
+```json
+{
+  "status": "success",
+  "data": {
+    "history": [
+      {
+        "date": "Feb 7",
+        "rawDate": "2026-02-07T14:30:00.000Z",
+        "items": [
+          {
+            "id": "evt_123",
+            "exercise": "Bench Press",
+            "bodyPart": "Chest",
+            "time": "2:30 PM",
+            "sets": 4,
+            "reps": 32,
+            "weight": 85,
+            "metric": "kg",
+            "isPR": true,
+            "prWeight": 85,
+            "calories": 45,
+            "duration": 12
+          }
+        ]
+      }
+    ]
+  }
+}
+```

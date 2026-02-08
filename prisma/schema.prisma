@@ -46,7 +46,7 @@ model User {
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
   summaries     AnalyticsSummary[]
-  metricEvents  MetricEvent[]
+  metricEvents  ActivityEvent[]
   workoutPlans  WorkoutPlan[]
   bodyMetrics   BodyMetric[]
   
@@ -238,10 +238,27 @@ model WorkoutExercise {
   restMax         Float?
   order           Int
   isCompleted     Boolean           @default(false)
+  
+  prescribedSets  WorkoutExerciseSet[]
   performanceLogs ExercisePerformanceLog[]
 
   @@index([sessionId, isCompleted])
   @@index([exerciseId])
+}
+
+model WorkoutExerciseSet {
+  id                String   @id @default(uuid())
+  workoutExerciseId String
+  setNumber         Int
+  targetRepsMin     Int?
+  targetRepsMax     Int?
+  targetWeight      Float?
+  targetRPE         Int?
+  restSeconds       Int?
+
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutExerciseId, setNumber])
 }
 
 model ExercisePerformanceLog {
@@ -249,12 +266,19 @@ model ExercisePerformanceLog {
   workoutExerciseId String
   workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
   setNumber         Int
+  
   weight            Float?
   actualReps        Int?
   rpe               Int?            
+  restSeconds       Int?
+  
+  completed         Boolean         @default(true)
   isPersonalRecord  Boolean         @default(false)
+  volume            Float?
+  
   createdAt         DateTime        @default(now())
 
+  @@index([workoutExerciseId, setNumber])
   @@index([workoutExerciseId, createdAt])
 }
 
@@ -262,6 +286,9 @@ model WorkoutSessionLog {
   id                 String         @id @default(uuid())
   sessionId          String         @unique
   session            WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  startedAt          DateTime       @default(now())
+  endedAt            DateTime?
   durationMinutes    Int?
   perceivedDifficulty Int?           
   notes              String?
@@ -319,17 +346,30 @@ model BodyMetric {
   @@index([userId, date])
 }
 
-model MetricEvent {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // e.g., WORKOUT_COMPLETE, WATER_LOG, LIFT_PR
-  value     Float?
-  unit      String?
-  metadata  Json?    // Optional JSON for extra context (e.g., { exerciseId: "..." })
-  createdAt DateTime @default(now())
+model ActivityEvent {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String   // e.g., WORKOUT_COMPLETE, WATER_LOG, LIFT_PR
+  
+  // Optional payload fields
+  workoutId       String?
+  exerciseId      String?
+  bodyPart        String?
+  durationSeconds Int?
+  calories        Int?
+  weight          Float?
+  reps            Int?
+  sets            Int?
+
+  value           Float?   // Generic value fallback
+  unit            String?  // Generic unit fallback
+  metadata        Json?    // Optional JSON for extra context (e.g., { rawData: "..." })
+  createdAt       DateTime @default(now())
 
   @@index([userId, type, createdAt])
+  @@index([workoutId])
+  @@index([exerciseId])
 }
 
 model AnalyticsSummary {

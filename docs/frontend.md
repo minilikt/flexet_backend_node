@@ -258,6 +258,40 @@ Weight and body fat history.
 Log current weight/fat percentage.
 - **Payload**: `{ "weight": 76, "fatPercentage": 14.1 }`
 
+### GET `/recovery-summary` [NEW]
+Returns readiness score, fatigued muscles, and intensity recommendation.
+- **Response (200)**:
+  ```json
+  {
+    "summary": {
+      "readiness": 85,
+      "fatiguedMuscles": ["Quads"],
+      "recommendedIntensity": "HIGH"
+    }
+  }
+  ```
+
+### GET `/history` [NEW]
+Returns completed exercise feed grouped by date.
+- **Response (200)**:
+  ```json
+  {
+    "history": [
+      {
+        "date": "Feb 7",
+        "items": [
+          {
+            "exercise": "Bench Press",
+            "time": "2:30 PM",
+            "isPR": true,
+            "prWeight": 85
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
 ---
 
 ## 🔬 Enums Reference

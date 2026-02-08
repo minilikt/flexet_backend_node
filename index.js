@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const { sendResponse } = require('./src/utils/response.utils');
+const { verifyAccessToken } = require('./src/utils/jwt.utils');
+
 
 const helmet = require('helmet');
 const path = require('path');
@@ -16,26 +18,49 @@ const analyticsRoutes = require('./src/routes/analytics.routes');
 
 const app = express();
 
+// Trust Proxy (Recommended for Rate Limiting behind proxies like Nginx/Vercel/Render)
+app.set('trust proxy', 1);
+
+// Rate Limiting Key Generator: Priority to User ID from JWT, fallback to strict IP
+const userKeyGenerator = (req, res) => {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = verifyAccessToken(token);
+            if (decoded && decoded.id) {
+                return `user:${decoded.id}`;
+            }
+        } catch (error) {
+            // Silently fall back to IP if token is invalid
+        }
+    }
+    // Use the library's built-in helper for proper IPv6 normalization
+    return ipKeyGenerator(req, res);
+};
+
 // Rate Limiting
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
-    standardHeaders: 'draft-7', // brough to you by IETF
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+    limit: 100, // Limit each IP/User to 100 requests per `window`
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: userKeyGenerator,
     message: (req, res) => {
-        sendResponse(res, 429, 'Too many requests from this IP, please try again after 15 minutes');
+        sendResponse(res, 429, 'Too many requests, please try again after 15 minutes');
     }
 });
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 20, // Limit each IP to 20 requests per `window` (stricter for auth).
+    limit: 20, // Stricter for auth
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    keyGenerator: userKeyGenerator,
     message: (req, res) => {
         sendResponse(res, 429, 'Too many login/registration attempts, please try again after 15 minutes');
     }
 });
+
 
 // Middleware
 app.use(helmet({
