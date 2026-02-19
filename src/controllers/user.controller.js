@@ -8,6 +8,7 @@ const updateProfile = async (req, res) => {
         const userId = req.user.userId;
         const {
             name,
+            fullName,
             age,
             gender,
             height,
@@ -36,6 +37,7 @@ const updateProfile = async (req, res) => {
             where: { id: userId },
             data: {
                 name,
+                fullName,
                 age: age ? parseInt(age) : undefined,
                 gender,
                 height: height ? parseFloat(height) : undefined,

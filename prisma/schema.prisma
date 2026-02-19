@@ -52,6 +52,7 @@ model User {
   
   // Profile Fields
   name          String?  // Preferred name
+  fullName      String?
   gender        String?
   age           Int?
   height        Float?   // cm
@@ -135,7 +136,7 @@ model MovementPattern {
 }
 
 model Equipment {
-  id        String              @id @default(uuid())
+  id        String p             @id @default(uuid())
   name      String              @unique
   exercises ExerciseEquipment[]
 }

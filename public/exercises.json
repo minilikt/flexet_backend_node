@@ -8374,7 +8374,7 @@
   {
     "id":"136",
     "name":"Spider Crawl Push Up",
-    "classification":{
+    "classification": {
       "category":"Legs\/Chest",
       "split":"Full Body",
       "movement_pattern":"Dynamic Horizontal Push",
@@ -8384,7 +8384,7 @@
       "equipment":[
         "Bodyweight"
       ],
-      "difficulty_rpe":{
+      "difficulty_rpe": {
         "min":7,
         "max":9
       }
@@ -8395,7 +8395,7 @@
         "Obliques",
         "Hip Flexors"
       ],
-      "secondary":[
+      "secondary": [
         "Triceps",
         "Quadriceps"
       ],
@@ -8436,7 +8436,7 @@
   {
     "id":"137",
     "name":"Barbell Standing Calf Raise",
-    "classification":{
+    "classification": {
       "category":"Calves",
       "split":"Legs",
       "movement_pattern":"Plantar Flexion",
@@ -12070,7 +12070,7 @@
       "load_formula":"Bodyweight * 1.10"
     },
     "logic_assets":{
-      "alternatives":[
+      "alternatives": [
         "201",
         "187"
       ],

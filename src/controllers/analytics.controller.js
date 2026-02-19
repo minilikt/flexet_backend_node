@@ -7,6 +7,9 @@ const AnalyticsCore = require('../services/AnalyticsCore');
 const getTimeRange = (filter) => {
     const now = new Date();
     switch (filter) {
+        case 'Day':
+        case 'Today':
+            return { gte: startOfDay(now), lte: now };
         case '3 Days':
             return { gte: subDays(now, 3), lte: now };
         case 'Week':

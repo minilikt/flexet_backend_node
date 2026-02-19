@@ -88,8 +88,6 @@ const getFilterMetadata = async (req, res) => {
                 categories: categories.map(c => c.name)
             }
         });
-
-
     } catch (error) {
         console.error('Error fetching filter metadata:', error);
         sendResponse(res, 500, 'Failed to fetch filter metadata', null, error.message);
